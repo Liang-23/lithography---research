@@ -1,0 +1,46 @@
+---
+schema_version: "1.0"
+id: SOURCE-REGISTRY
+type: source-register
+lifecycle_status: active
+authority_class: derived
+authority_scope: source-index-only
+created_by: ai
+content_origin: ai-assisted
+creation_authorization: "User request on 2026-08-26"
+created_at: 2026-08-26
+updated_at: 2026-09-01
+review_status: unreviewed
+reviewed_by:
+approved_by:
+approval_ref:
+core_alignment: pass
+exclude_from_synthesis: true
+---
+
+# Source Registry
+
+| SRC-ID | Title | Exact local path | Type | Version/date | Hash | Review status | Allowed use | Record |
+|---|---|---|---|---|---|---|---|---|
+| SRC-0001 | Deep Generative Prior for First Order Inverse Optimization | `raw/Deep Physics Prior.pdf` | PDF / arXiv preprint | arXiv:2504.20278v2 / 2025-10-14 | SHA256 `05671BD4F440759C6A033B0619B0AEFFF51D69BECB03A7441F17A651302B5073` | source-checked; claims unverified | Bounded Background/Wiki context and future claim-level verification; no authority to reintroduce inverse lithography | [Source record](SRC-0001_Deep_Generative_Prior_for_First_Order_Inverse_Optimization.md) |
+| SRC-0002 | Physics-consistent machine learning with output projection onto physical manifolds | `raw/Physics-consistent machine learning.pdf` | PDF / peer-reviewed journal article | *Communications Physics* 8:433 / 2025-11-17 / DOI `10.1038/s42005-025-02329-1` | SHA256 `99A2573C7D4FFE8F501BC871BEE256935F7CA70358F32508832BF7AD8ED9A869` | source-checked; Human-audited Pass 1 reconstruction stored canonically; claims unverified | Routed Source-relative reconstruction and future claim-level verification; no project selection or scientific authority | [Source record](SRC-0002_Physics_Consistent_Machine_Learning_with_Output_Projection_onto_Physical_Manifolds.md) |
+| SRC-0003 | NewPINNs: Physics-Informing Neural Networks Using Conventional Solvers for Partial Differential Equations | `raw/SRC-0003_NewPINNs.pdf` | PDF / arXiv preprint | arXiv:2601.17207v2 / 2026-06-19 | SHA256 `5CE2A9CA162CDA72019D2E3FB5021FAD170A18133179F07813F249E523299EDF` | source-checked; Tier 2 complete; targeted P1–P4 Human Audit completed; `EV-0001`–`EV-0003` verified on 2026-09-01 | Bounded Source-relative review of solver-consistency training and spatial outputs; no lithography or Method selection authority | [Source record](SRC-0003_NewPINNs.md) |
+| SRC-0004 | PADM: A Physics-aware Diffusion Model for Attenuation Correction | `raw/SRC-0004_PADM.pdf` | PDF / arXiv preprint | arXiv:2511.06948v1 / 2025-11-10; later WACV version not substituted | SHA256 `EC7AAFC92B072C406DE957AB164531D81CFF435D3A34D2D2668EB8740012A3EF` | source-checked; Tier 2 complete; targeted P1-P4 Human Audit completed; `EV-0004`-`EV-0006` verified by project-lead approval on 2026-09-01; version flag retained | Bounded Source-relative review of teacher-student image transfer; no substitution, lithography, or Method selection authority | [Source record](SRC-0004_PADM.md) |
+| SRC-0005 | Hard-Constrained Deep Learning for Climate Downscaling | `raw/SRC-0005_Hard_Constrained_Climate_Downscaling.pdf` | PDF / peer-reviewed journal article | *JMLR* 24(365):1–40 / 2023-12 | SHA256 `235C7B7CB410C000B77F9A93698B8132D5E7CB33F5C3D3DD331A5BA6D72AE1F5` | source-checked; Tier 2 Agent review complete; claims unverified | Bounded Source-relative review of terminal spatial constraints and mismatch damage; no lithography or Method selection authority | [Source record](SRC-0005_Hard_Constrained_Deep_Learning_for_Climate_Downscaling.md) |
+| SRC-0006 | Adaptive Correction for Ensuring Conservation Laws in Neural Operators | `raw/SRC-0006_Adaptive_Correction_Neural_Operators.pdf` | PDF / arXiv preprint | arXiv:2505.24579v2 / 2026-03-07 | SHA256 `77801C5E9B3B31BC361C0B8016BD0B9C02C555F5EE0CDCDF7F974AD19D61D8F9` | source-checked; Tier 2 Agent review complete; claims unverified | Bounded Source-relative review of learned field correction and projection damage; no lithography or Method selection authority | [Source record](SRC-0006_Adaptive_Correction_for_Ensuring_Conservation_Laws_in_Neural_Operators.md) |
+| SRC-0007 | Hard conservation correctors can hide a degrading model when training autoregressive emulators | `raw/SRC-0007_Hard_Conservation_Correctors.pdf` | PDF / arXiv preprint | arXiv:2607.18416v1 / 2026-07-20 | SHA256 `0A1E76388DC0D3C70EB9F42B72DA0FBA1C8F358A04CA184DFD8DFAC2FA51E38A` | source-checked; Tier 2 Agent review complete; claims unverified | Bounded Source-relative review of corrected-loss gradient nullspace and safeguards; no universalization or Method authority | [Source record](SRC-0007_Hard_Conservation_Correctors_Can_Hide_a_Degrading_Model.md) |
+| SRC-0008 | Solver-Integrated Adversarial Attacking and Training of Neural Operators | `raw/SRC-0008_Solver_Integrated_Adversarial_Neural_Operators.pdf` | PDF / arXiv preprint | arXiv:2510.18989v3 / 2026-07-07 | SHA256 `F256BE971FB78E3CFE0C1EB6FCB29EE7A0ABCD516CC714B5C5FC7CB4B790A793` | source-checked; Tier 2 Agent review complete; claims unverified | Bounded Source-relative review of solver relabelling and robustness trade-offs; no output-projection or Method authority | [Source record](SRC-0008_Solver_Integrated_Adversarial_Attacking_and_Training_of_Neural_Operators.md) |
+| SRC-0009 | Deep Epidemiological Modeling by Black-box Knowledge Distillation: An Accurate Deep Learning Model for COVID-19 | `raw/SRC-0009_Deep_Epidemiological_Modeling_Black_Box_KD.pdf` | PDF / peer-reviewed conference paper | AAAI 2021 / DOI `10.1609/aaai.v35i17.17812` | SHA256 `7F160F3AC13575C131B81634F4AA62EBDAAE479D1DBAA914410031258A0321DB` | source-checked; Tier 2 Agent review complete; claims unverified | Bounded Source-relative review of black-box teacher targets and teacher-free inference; no lithography or Method authority | [Source record](SRC-0009_Deep_Epidemiological_Modeling_by_Black_Box_Knowledge_Distillation.md) |
+| SRC-0010 | Transient heat conduction modelling for real-time operation and control of steel-making reheating furnaces - a physics-informed knowledge distillation-assisted EngGeneNet approach | `raw/SRC-0010_EngGeneNet_Transient_Heat_Conduction.pdf` | PDF / author accepted manuscript | *Control Engineering Practice* 164, 106472 / 2025 / DOI `10.1016/j.conengprac.2025.106472` | SHA256 `F0DC435CE17F2E2D6D2A4AB782CD8269AF8C3E7D81E9CF844F8FED47A2ACA455` | source-checked; Tier 2 Agent review complete; accepted-version boundary retained; claims unverified | Bounded Source-relative review of solver-generated spatial training data; no VoR substitution, lithography, or Method authority | [Source record](SRC-0010_EngGeneNet_Transient_Heat_Conduction.md) |
+| SRC-0011 | PhysicsCorrect: A Training-Free Approach for Stable Neural PDE Simulations | `raw/SRC-0011_PhysicsCorrect.pdf` | PDF / peer-reviewed conference paper | AAAI 2026 / DOI `10.1609/aaai.v40i26.39360` | SHA256 `BB52DA6ED7BB28B6700DF1B5CF62CA5FD1A521087D0C6091ED900C6460AFBBA8` | source-checked; Tier 2 Agent review complete; published-version boundary retained; claims unverified | Bounded Source-relative review of external residual correction; no extended-version import, lithography, or Method authority | [Source record](SRC-0011_PhysicsCorrect.md) |
+| SRC-0012 | Pinet: Optimizing hard-constrained neural networks with orthogonal projection layers | `raw/SRC-0012_Pinet.pdf` | PDF / arXiv v2 and ICLR 2026 paper | arXiv:2508.10480v2 / 2026-02-18 | SHA256 `307E1FB800607A61EB1F2E77805C3325BEAF5FA83E6CF18F10AF6D90326310AE` | source-checked; Tier 2 Agent review complete; title alias retained; claims unverified | Bounded Source-relative review of differentiable orthogonal projection layers; no projector-removal or Method authority | [Source record](SRC-0012_Pinet.md) |
+| SRC-0013 | DC3: A learning method for optimization with hard constraints | `raw/SRC-0013_DC3.pdf` | PDF / arXiv v1 and ICLR 2021 paper | arXiv:2104.12225v1 / 2021-04-25 | SHA256 `3F66204348D05A408823CE9B1F0C431F25DDEB61EE8A31C8644A82A67790BC48` | source-checked; Tier 2 Agent review complete; claims unverified | Bounded Source-relative review of differentiable completion/correction; no image, lithography, or Method authority | [Source record](SRC-0013_DC3.md) |
+
+## Rules
+
+- Allocate from `SRC-0001`; never reuse an ID.
+- The original artifact must be inside the project boundary or explicitly authorized and registered.
+- `raw/` originals are immutable.
+- Conversion creates a derived source with explicit parent linkage; it never overwrites the original.
+- Unknown provenance, license, or integrity means `quarantined`, not active.
+- Use `_templates/Source_Record_Template.md` for detailed records.
