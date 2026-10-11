@@ -118,9 +118,15 @@ reference implementation with the candidate aggregation wherever applicable.
    reference and candidate within the aggregation tolerance. No magnitude square
    is performed.
 6. **Gradient propagation:** with a scalar loss equal to the mean squared error
-   of the real inverse-FFT output against a fixed real target, every trainable
-   real and imaginary coefficient receives a finite, nonzero gradient; finite
-   difference spot checks agree with autograd within relative error $\le1\times10^{-3}$.
+   of the real inverse-FFT output against a fixed real target, gradients
+   must be finite for all active independent parameter components, with
+   nonzero gradients verified on chosen nondegenerate active components.
+   Zero gradients on masked, unused, or symmetry-constrained terms are
+   permitted and must be documented. Centered finite-difference spot
+   checks compare effective independent parameters using both absolute
+   and relative error tolerances; numerical values remain proposals
+   subject to approval, and near-zero reference gradients require the
+   absolute tolerance rather than division by zero.
 7. **Finite/stability gate:** all intermediate and final real/imaginary values,
    losses, and gradients are finite for the normal fixture and a stress fixture
    scaled by $10^3$; no NaN/Inf and no runtime overflow.
