@@ -105,10 +105,20 @@ reference implementation with the candidate aggregation wherever applicable.
    $C\,M(k)\operatorname{conj}(M(l))$ against an independently expanded real/imag
    calculation; maximum absolute error $\le 1\times10^{-6}$ (float32) or
    $\le 1\times10^{-12}$ (float64).
-3. **Complex scatter-add:** candidate and loop reference agree per bin with
-   relative $L_\infty$ error $\le 1\times10^{-5}$ (float32) or
-   $\le 1\times10^{-12}$ (float64), including bins receiving zero, one, and many
-   pairs.
+3. **Complex scatter-add:** compare candidate and independent loop
+   reference for all output bins, including zero, one, and many contributing
+   pairs. A pure relative error is undefined when the reference bin is
+   zero. Instead, define per-bin absolute difference
+   `error[q] = abs(candidate[q] - reference[q])` and evaluate against
+   `atol + rtol * scale[q]`. For a cancellation-resistant diagnostic,
+   `scale[q]` is the independently accumulated sum of the absolute
+   magnitudes of all pair contributions to bin q. Empty bins use the
+   absolute tolerance. Suggested initial float32 values are
+   `atol=1e-6` and `rtol=1e-5`; float64 values may start at
+   `atol=1e-12` and `rtol=1e-12`. These values are NOT approved:
+   determine whether they fit the actual numerical magnitudes and
+   addition order before freezing the experiment plan. Record maximum
+   absolute error and cancellation-heavy bin errors separately.
 4. **Conjugate symmetry:** for the Hermitian fixture,
    $\max_q|\widehat I(q)-\operatorname{conj}(\widehat I(-q))|\le1\times10^{-5}$
    (float32); DC and self-conjugate Nyquist bins have imaginary magnitude
