@@ -6,8 +6,8 @@ title: "Frequency Difference Neural Interaction Graph (FD-NIG)"
 lifecycle_status: draft
 authority_class: working
 authority_scope: candidate-method-only
-created_by: human
-content_origin: human
+created_by: ai
+content_origin: ai-assisted
 created_at: 2026-10-11
 updated_at: 2026-10-11
 owner: project-lead
@@ -33,7 +33,7 @@ exclude_from_synthesis: false
 
 ## 1. Purpose and authority
 
-FD-NIG is an independent draft candidate architecture for the project's forward computational lithography surrogate. It directly learns effective complex pairwise interactions between mask-frequency components and routes their frequency differences to an output spectrum. It remains a candidate only; this record does not select a project method, authorize an experiment, promote evidence, or freeze `DATA-0001`.
+FD-NIG is an independent draft candidate architecture for the project's forward computational lithography surrogate. The direct-pairwise scientific concept and its requested scope originate from the project lead; the present Markdown specification was written with AI assistance under explicit user authorization. It directly learns effective complex pairwise interactions between mask-frequency components and routes their frequency differences to an output spectrum. It remains a candidate only; this record does not select a project method, authorize an experiment, promote evidence, or freeze `DATA-0001`.
 
 - Core requirements addressed: end-to-end forward prediction, high-dimensional representation learning, spatial-frequency behavior, and reduced inference cost relative to a high-fidelity simulator.
 - Linked hypotheses and physics constraints: none currently registered. No separate `HYP-0004` is created because the present record specifies an architecture rather than a falsifiable comparative claim.
@@ -42,13 +42,21 @@ FD-NIG is an independent draft candidate architecture for the project's forward 
 
 ## 2. Mathematical formulation
 
-Let the discrete mask spectrum be $M(k)$ on a finite frequency grid $mathcal{K}$. For each output difference frequency $q$ in $mathcal{Q}$, the primary architecture computes
+Let the discrete mask spectrum be $M(k)$ on a finite frequency grid $\mathcal{K}$. For each output difference frequency $q$ in $\mathcal{Q}$, the primary architecture computes
 
 $$
 \widehat{I}(q)=\sum_{(k,l)\in\mathcal{P}_q} C_\theta(k,l,c)\,M(k)\,\operatorname{conj}(M(l)),
 $$
 
-where $\mathcal{P}_q=\{(k,l):k-l=q\}$, $C_\theta$ is a learned complex pairwise coefficient, and $c$ contains available optical and process conditions. Aggregation is complex summation over interactions routed to $q$. The predicted output spectrum is transformed to a spatial field by an explicitly recorded inverse discrete Fourier transform; a nonnegative image quantity must then be defined, for example $\widehat{I}_{\mathrm{img}}(x)=|\mathcal{F}^{-1}(\widehat{I})(x)|^2$ when the target represents intensity. This intensity interpretation is unresolved until the simulator/data contract is established.
+where $\mathcal{P}_q=\{(k,l)\in\mathcal{P}:\,(k-l)\bmod(H,W)=q\}$ for a circular $H\times W$ DFT grid, $C_\theta$ is a learned complex pairwise coefficient, and $c$ contains available optical and process conditions. Aggregation is complex summation over interactions routed to $q$. If a padded, non-circular convention is chosen instead, the pair routing and crop geometry must be defined separately.
+
+The primary formulation defines $\widehat{I}$ as the **Fourier spectrum of predicted aerial intensity**, not the spectrum of a complex optical field. Under the declared FFT conventions, its direct spatial reconstruction is therefore
+
+$
+I_{\mathrm{pred}}(x)=\mathcal{F}^{-1}\!\left[\widehat{I}\right](x).
+$
+
+This is a proposed intensity-valued prediction only if the chosen data/output contract supports that interpretation. Hermitian symmetry is needed for $I_{\mathrm{pred}}$ to be real-valued, while nonnegativity is a separate physical or modeling requirement not guaranteed by an unconstrained learned $C_\theta$. **Do not apply** $|\mathcal{F}^{-1}(\widehat{I})|^2$ as an automatic last step: it would square an already reconstructed intensity, change the predicted target and mix spectral components. A model that instead predicts a complex *field* spectrum and then squares its spatial magnitude would be a distinct architecture with a separately justified output contract.
 
 The coefficient is produced by a shared neural message function from pair features such as frequency coordinates, condition features, and optional mask-independent positional encodings. Individual coefficients do not require ground-truth labels: supervision is applied to the final output image or its spectrum.
 
@@ -58,23 +66,25 @@ The coefficient is produced by a shared neural message function from pair featur
 |---|---|---|---|---|---|
 | Input mask | Spatial mask $m$ and its DFT $M(k)$ | $[N,1,H,W]$; $[N,|\mathcal{K}|]$ | normalized mask; discrete frequency bins | image pixels and integer FFT indices | DATA-0001 pairing exists; spectrum contract unresolved |
 | Conditions | Optical/process vector $c$ | $[N,d_c]$ | simulator-defined | condition metadata coordinates | absent or incomplete in DATA-0001 |
-| Pair features | $(k,l,k-l,c)$ and optional learned features | sparse pair list $[N,P,d_f]$ | discrete frequency indices plus condition units | FFT-index convention to be frozen | candidate design |
+| Pair features | $(k,l,(k-l)\bmod(H,W),c)$ and optional learned features | sparse pair list $[N,P,d_f]$ | discrete frequency indices plus condition units | FFT-index convention to be frozen | candidate design |
 | Raw output | Complex spectrum $\widehat{I}(q)$ | $[N,|\mathcal{Q}|,2]$ or complex tensor | simulator output spectrum | output-frequency grid | candidate design |
 | Final output | Spatial aerial/resist/wafer image | $[N,1,H_o,W_o]$ | target-specific intensity or normalized image | image pixels | target stage unresolved |
 
-Discrete frequency indexing, FFT shift/order, grid padding, boundary convention, normalization, and Hermitian treatment must be frozen in an experiment plan before implementation.
+Discrete frequency indexing (including modular difference bins, self-conjugate DC/Nyquist cases, and any padded alternative), FFT shift/order, grid padding, boundary convention, normalization, and Hermitian treatment must be frozen in an experiment plan before implementation.
 
 ## 4. Architecture and data flow
 
 1. Convert the mask to a discrete spectrum $M(k)$ using a documented DFT convention.
 2. Construct an explicitly sparse set of frequency pairs $\mathcal{P}\subseteq\mathcal{K}\times\mathcal{K}$; dense all-pairs evaluation is not assumed.
 3. Apply a shared message function to pair and condition features to predict real and imaginary coefficient channels for $C_\theta(k,l,c)$.
-4. Multiply each coefficient by $M(k)\operatorname{conj}(M(l))$ and scatter-add the complex interaction into bin $q=k-l$.
-5. Convert the aggregated spectrum into the target output with the chosen inverse transform and output representation.
+4. Multiply each coefficient by $M(k)\operatorname{conj}(M(l))$ and scatter-add the complex interaction into the discrete bin $q=(k-l)\bmod(H,W)$ under the circular DFT convention.
+5. Under the primary aerial-intensity spectrum contract, inverse-transform the aggregated spectrum directly to obtain a real predicted intensity, subject to the agreed Hermitian and nonnegativity policy. Do not apply a second magnitude square. Any alternative field-amplitude output contract must be described and reviewed separately.
 
 Sparse pair selection must be explicit: possible policies include a fixed low-frequency window, magnitude/top-$P$ mask-spectrum pairs, structured bands, or learned gates. Any data-dependent selection must define differentiability, tie handling, and train/inference consistency. Graph Sampling, Graph Attention, and Graph Transformer blocks may implement pair selection or message passing as ablations; none is mandatory to define FD-NIG.
 
-Hermitian symmetry is not automatic for a learned complex coefficient. If a real spatial output is required, the implementation must either enforce the appropriate conjugate symmetry in the assembled spectrum, use a real-valued output construction, or document why the target is complex. A real nonnegative intensity cannot be obtained by unconstrained spectrum summation alone; an intensity/magnitude-squared, bounded output map, or simulator-defined observation operator is required.
+Hermitian symmetry is not automatic for a learned complex coefficient. For a real input mask, one sufficient design is to include swapped pairs with $C_\theta(l,k,c)=\overline{C_\theta(k,l,c)}$, which gives conjugate-matched contributions at the negative difference bins; alternatively explicitly symmetrize the assembled spectrum. The DC bin and self-conjugate Nyquist bins must remain real, and pair sampling must not silently break the pairing rule. These are candidate enforcement methods, not yet selected.
+
+The inverse transform of a Hermitian spectrum is **real**, but not necessarily **nonnegative**. A real nonnegative aerial intensity requires an additional justified coefficient structure, physically motivated intensity parameterization, or a separately declared nonnegativity policy; post-hoc clipping or squaring the spatial prediction changes its spectrum and cannot be silently treated as part of the primary formula.
 
 ## 5. Training behavior
 
