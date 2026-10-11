@@ -99,6 +99,17 @@ Planned files for a later approved implementation:
 All thresholds are proposals requiring approval. Tests compare the independent
 reference implementation with the candidate aggregation wherever applicable.
 
+**Floating-point accumulation review:** An exhaustive 16x16 frequency-pair
+reference sums 65,536 complex contributions, and different summation orders
+may lead to materially different float32 rounding. Before approving the
+candidate tolerances, document the reduction order, compare float64
+reference/vectorized outputs, and characterize float32-vs-float64 errors
+(including cancellation-heavy and empty bins) using separately authorized
+calibration fixtures. The values listed below are starting proposals, not
+empirically justified gates. Any revision of numerical thresholds must be
+reviewed and frozen BEFORE executing the formal experiment; do not silently
+relax thresholds after a failed run.
+
 1. **Frequency-difference routing:** every enumerated pair lands in exactly one
    bin and the candidate route equals `(k-l) mod (H,W)` for 100% of pairs.
 2. **Complex pairwise multiplication:** compare
