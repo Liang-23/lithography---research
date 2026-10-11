@@ -1,0 +1,18 @@
+{
+  "status": "proposal",
+  "experiment": "EXP-0003",
+  "method": "METHOD-0002",
+  "seed": 20261011,
+  "grid": {"height": 16, "width": 16, "circular": true},
+  "fft": {"order": "native-unshifted", "normalization": "torch-default"},
+  "pair_policy": {"reference": "all", "sparse_count": 256, "order": "lexicographic"},
+  "dtype": "float64",
+  "tolerances": {
+    "status": "proposal",
+    "float32": {"atol": 1e-6, "rtol": 1e-5},
+    "float64": {"atol": 1e-12, "rtol": 1e-12}
+  },
+  "compute_budget": {"device": "cpu", "max_repetitions": 2, "wall_seconds": 120, "memory_gb": 2},
+  "intensity_contract": "ifft2_real_direct; no_magnitude_square",
+  "approval_status": "not_requested"
+}
