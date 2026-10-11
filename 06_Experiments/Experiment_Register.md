@@ -20,3 +20,4 @@ exclude_from_synthesis: false
 |---|---|---|---|---|---|---|---|---|---|---|
 | EXP-0001 | [Data-only baseline versus SSIM-loss ablation](EXP-0001/Plan.md) | draft (blocked) | — | — | Not assumed applicable | — | No | Not created | project-lead | 2026-08-27 |
 | EXP-0002 | [Architecture 3 kernel-prediction optical-renderer feasibility prototype](EXP-0002/Plan.md) | draft (blocked) | HYP-0001, HYP-0002 | METHOD-0001 | — | DATA-0001 | No | Not created | project-lead | 2026-09-21 |
+| EXP-0003 | [FD-NIG synthetic frequency-difference aggregation feasibility](EXP-0003/Plan.md) | draft (blocked) | — (linkage decision required) | METHOD-0002 | — | — (synthetic only) | No | Not created | project-lead | 2026-10-11 |
