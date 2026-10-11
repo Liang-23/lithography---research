@@ -8,7 +8,8 @@ from tools.fd_nig_aggregation import (absolute_scales, aggregate, enforce_hermit
                                       route_pairs)
 from tools.fd_nig_reference import (exhaustive_aggregate, make_fixture,
                                     pair_products as reference_products,
-                                    route_pairs as reference_route)
+                                    route_pairs as reference_route,
+                                    zero_safe_error)
 
 
 def test_route_and_pair_products_are_independent():
@@ -76,16 +77,39 @@ def test_zero_safe_error_and_stress_fixture_are_finite():
     bins = route_pairs(fixture.pairs, 8, 8)
     scales = absolute_scales(reference_products(fixture.coefficients, scaled, fixture.pairs), bins, 64)
     reference = exhaustive_aggregate(fixture.coefficients, scaled, fixture.pairs)
-    error = (output - reference).abs() - (1e-12 + 1e-12 * scales.reshape(8, 8))
+    # Draft-only numerical gate: compare independently computed spectra
+    # against the proposed bound rather than merely checking finiteness.
+    error = zero_safe_error(output, reference, scales.reshape(8, 8),
+                            atol=1e-12, rtol=1e-12)
     assert torch.isfinite(error).all()
-    # Explicit empty-bin and cancellation cases remain well-defined.
+    assert torch.all(error <= 0), "vectorized aggregation exceeds proposed error bound"
+
+    # Empty bins are defined even when both the reference and scale are zero.
     empty_candidate = torch.zeros(2, dtype=torch.complex128)
     empty_reference = torch.zeros_like(empty_candidate)
-    empty_scale = torch.zeros(2)
-    assert torch.isfinite((empty_candidate - empty_reference).abs() - 1e-12).all()
+    empty_scale = torch.zeros(2, dtype=torch.float64)
+    empty_error = zero_safe_error(empty_candidate, empty_reference,
+                                  empty_scale, atol=1e-12, rtol=1e-12)
+    assert torch.all(empty_error <= 0)
+
+    # A real defect must fail, even when the reference bin is exactly zero.
+    perturbed = empty_candidate.clone()
+    perturbed[0] = 1e-4 + 0j
+    bad_error = zero_safe_error(perturbed, empty_reference,
+                                empty_scale, atol=1e-12, rtol=1e-12)
+    assert bad_error[0] > 0
+
+    # Cancellation may make the reference zero without making its absolute
+    # contribution scale zero. Check the bound on controlled contributions.
     cancellation = torch.tensor([1 + 0j, -1 + 0j], dtype=torch.complex128)
-    cancellation_scale = cancellation.abs().sum()
-    assert cancellation_scale > 0 and cancellation.sum().abs() == 0
+    cancellation_scale = cancellation.abs().sum().reshape(1)
+    cancellation_reference = cancellation.sum().reshape(1)
+    cancellation_candidate = cancellation_reference.clone()
+    cancellation_error = zero_safe_error(cancellation_candidate,
+                                         cancellation_reference,
+                                         cancellation_scale, atol=1e-12, rtol=1e-12)
+    assert cancellation_scale.item() > 0
+    assert torch.all(cancellation_error <= 0)
 
 
 def test_dc_and_nyquist_bins_are_real_for_hermitian_spectrum():
