@@ -53,11 +53,13 @@ def hermitian_residual(spectrum: torch.Tensor) -> torch.Tensor:
 def inverse_real(spectrum: torch.Tensor, enforce_symmetry: bool = False,
                  check: bool = True, tolerance: float | None = None) -> torch.Tensor:
     assembled = enforce_hermitian(spectrum) if enforce_symmetry else spectrum
-    if check and tolerance is not None and hermitian_residual(assembled) > tolerance:
+    if check and tolerance is None:
+        raise ValueError("inverse_real requires an explicit validation tolerance; use check=False to opt out")
+    if check and hermitian_residual(assembled) > tolerance:
         raise ValueError("spectrum violates Hermitian symmetry")
     spatial = torch.fft.ifft2(assembled)
     residual = spatial.imag.abs().amax()
-    if check and tolerance is not None and residual > tolerance:
+    if check and residual > tolerance:
         raise ValueError("inverse FFT has non-negligible imaginary residual")
     return spatial.real
 
