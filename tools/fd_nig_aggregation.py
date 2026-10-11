@@ -34,13 +34,32 @@ def aggregate(coefficients: torch.Tensor, spectrum: torch.Tensor,
 
 def enforce_hermitian(spectrum: torch.Tensor) -> torch.Tensor:
     """Project a 2-D spectrum onto Hermitian symmetry without squaring output."""
-    flipped = torch.roll(torch.roll(spectrum.conj(), 1, -2), 1, -1)
+    rows = torch.arange(spectrum.shape[-2], device=spectrum.device)
+    cols = torch.arange(spectrum.shape[-1], device=spectrum.device)
+    flipped = spectrum.conj().index_select(-2, (-rows) % spectrum.shape[-2])
+    flipped = flipped.index_select(-1, (-cols) % spectrum.shape[-1])
     return 0.5 * (spectrum + flipped)
 
 
-def inverse_real(spectrum: torch.Tensor, enforce_symmetry: bool = False) -> torch.Tensor:
+def hermitian_residual(spectrum: torch.Tensor) -> torch.Tensor:
+    """Return the maximum conjugate-symmetry residual over ``q`` and ``-q``."""
+    rows = torch.arange(spectrum.shape[-2], device=spectrum.device)
+    cols = torch.arange(spectrum.shape[-1], device=spectrum.device)
+    negative = spectrum.conj().index_select(-2, (-rows) % spectrum.shape[-2])
+    negative = negative.index_select(-1, (-cols) % spectrum.shape[-1])
+    return (spectrum - negative).abs().amax()
+
+
+def inverse_real(spectrum: torch.Tensor, enforce_symmetry: bool = False,
+                 check: bool = True, tolerance: float | None = None) -> torch.Tensor:
     assembled = enforce_hermitian(spectrum) if enforce_symmetry else spectrum
-    return torch.fft.ifft2(assembled).real
+    if check and tolerance is not None and hermitian_residual(assembled) > tolerance:
+        raise ValueError("spectrum violates Hermitian symmetry")
+    spatial = torch.fft.ifft2(assembled)
+    residual = spatial.imag.abs().amax()
+    if check and tolerance is not None and residual > tolerance:
+        raise ValueError("inverse FFT has non-negligible imaginary residual")
+    return spatial.real
 
 
 def absolute_scales(contributions: torch.Tensor, bins: torch.Tensor,

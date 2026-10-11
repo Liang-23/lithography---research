@@ -6,7 +6,7 @@ candidate aggregation reduction with :mod:`fd_nig_aggregation`.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable, Tuple
+from typing import Tuple
 
 import torch
 
@@ -45,10 +45,14 @@ def pair_products(coefficients: torch.Tensor, spectrum: torch.Tensor,
     """Compute complex pair contributions in an explicit scalar formula."""
     values = []
     for index, (kr, kc, lr, lc) in enumerate(pairs.tolist()):
-        c = coefficients[index]
-        a = spectrum[kr, kc]
-        b = spectrum[lr, lc].conj()
-        values.append(c * a * b)
+        c, a, b = coefficients[index], spectrum[kr, kc], spectrum[lr, lc]
+        # Deliberately expand the complex product; this is independent of the
+        # candidate's vectorized conjugate/multiply expression.
+        cr, ci, ar, ai, br, bi = c.real, c.imag, a.real, a.imag, b.real, b.imag
+        br, bi = br, -bi
+        real = (cr * ar - ci * ai) * br - (cr * ai + ci * ar) * bi
+        imag = (cr * ar - ci * ai) * bi + (cr * ai + ci * ar) * br
+        values.append(torch.complex(real, imag))
     return torch.stack(values) if values else spectrum.new_empty((0,))
 
 
