@@ -39,19 +39,21 @@ forbidden.
 ## Governance linkage and blockers
 
 - Method: `METHOD-0002` (candidate only).
-- Hypothesis: none is linked. This is an implementation-feasibility check, not a
-  falsifiable comparative research claim. Before approval, the project lead must
-  decide whether governance requires a new draft Hypothesis for this numerical
-  claim or permits a method-local feasibility experiment under `METHOD-0002`.
-  The plan does **not** create `HYP-0004` automatically and does not repurpose
-  `HYP-0001`–`HYP-0003`.
+- Hypothesis linkage: **method-local feasibility check without a separate
+  Hypothesis, explicitly approved by the project lead in the ChatGPT conversation
+  on 2026-10-11**. This check tests numerical implementation behavior under
+  `METHOD-0002`, not a falsifiable comparative lithography research claim.
+  No `HYP-0004` is created, and `HYP-0001`–`HYP-0003` are not repurposed.
+  This approval applies only to hypothesis linkage: it does **not** approve
+  numerical thresholds, the experiment Plan, or any test execution.
 - Physics Constraint: none. Hermitian symmetry is an algebraic test condition,
   not a registered physical constraint.
 - Data: no `DATA-0001` or MetalSet files; all inputs are generated and frozen in
   the plan/configuration.
-- Approval blockers: explicit approval of the hypothesis-linkage decision, the
-  proposed thresholds and compute budget, the FFT/index convention, and the
-  implementation scope. No execution is permitted while `draft-blocked`.
+- Approval blockers: project-lead approval of proposed thresholds, compute
+  budget, FFT/index convention, sparse-pair policy, and implementation scope,
+  followed by formal approval of the experiment Plan. Hypothesis linkage is
+  resolved separately above. No execution is permitted while `draft-blocked`.
 
 ## Frozen synthetic contract (proposal)
 
@@ -172,12 +174,14 @@ summary. No artifact may be described as scientific validation.
 
 ## Unresolved prerequisites
 
-1. User approval of the hypothesis-linkage interpretation (method-local check or
-   a separately drafted Hypothesis).
-2. User approval of all proposed numerical tolerances, seed, grid/normalization,
-   sparse-pair policy, and compute budget.
-3. A later implementation review confirming the reference and candidate paths
-   are independent and that no protected repository files are changed.
-4. Approval of this Plan (`approval_status`) before any test execution.
+1. **Resolved, 2026-10-11:** Project lead explicitly approved treating
+   `EXP-0003` as a `METHOD-0002` method-local numerical feasibility check,
+   without creating `HYP-0004`. This does not approve test execution.
+2. **Still blocked:** User approval of all proposed numerical tolerances, seed,
+   grid/normalization, sparse-pair policy, and compute budget.
+3. **Still blocked:** Final implementation review confirming reference/candidate
+   independence, adequate test coverage, and protected-file boundaries.
+4. **Still blocked:** Formal approval of this Plan (`approval_status`) before
+   any test execution.
 
 Until all four prerequisites are resolved, `EXP-0003` remains `draft-blocked`.
