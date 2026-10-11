@@ -1,6 +1,12 @@
 ---
-id: Q-0021
-title: "MetalSet litho target verification against official LithoBench"
+id: EV-0007
+type: evidence-record
+title: "Official LithoBench simulator distinguishes aerial and printed outputs"
+authority_scope: atomic-claim-only
+owner: project-lead
+reviewed_by:
+approved_by:
+approval_ref:
 lifecycle_status: draft
 authority_class: working
 content_origin: mixed
@@ -8,9 +14,33 @@ review_status: unreviewed
 evidence_state: unverified
 created_at: 2026-10-11
 updated_at: 2026-10-11
-source_ids: []
+source_ids: [SRC-0014, SRC-0015]
 data_ids: [DATA-0001]
+exclude_from_synthesis: true
 ---
+
+# EV-0007: bounded atomic claim
+
+## Claim
+
+In the inspected official LithoBench simulator implementation, `LithoSim.sim` returns distinct pre-threshold aerial-intensity tensors and post-sigmoid printed tensors for the nominal and modeled process-corner settings.
+
+## Grounding and applicability
+
+- Primary registered Source: `SRC-0014`, official code at Git commit `9c74e82218e377eaf6d02d113fc1ce6e36c92aa6`.
+- Exact locators: `pylitho/exact.py`, `_LithoSim.forward`, `LithoSim.sim` (aerial and printed output calculations); `lithobench/dataset.py`, `filesLithoSim` and `DataLitho.__getitem__` (related loader-channel mapping).
+- Supporting background source: `SRC-0015`, official NeurIPS 2023 LithoBench paper, benchmark description.
+- Evidence form: source-code observation and bounded interpretation, not independent validation of the user's local MetalSet image generation.
+- Supports: The official simulator implementation distinguishes optical aerial fields from sigmoid-transformed printed responses.
+- Does **not** establish: The user's local `MetalSet/litho/*.png` files were generated using this exact simulator or revision, nor their absolute physical units, scaling, correspondence to process corners, or suitability as verified aerial-intensity targets.
+
+## Review and verification boundary
+
+The project lead states that the official sources' identities and trustworthiness have been inspected. This is a source-level review acknowledgement, not blanket approval of the local dataset's physical interpretation. The atomic claim remains `evidence_state: unverified` until its exact locators and wording are approved through the established claim-level Evidence workflow. No local-data provenance or scientific validation status is promoted by this administrative registration.
+
+## Supporting inspection report
+
+The following sections preserve the existing broader provenance review and unresolved questions. They are context supporting the single atomic claim above, not separately verified `EV` claims.
 
 # Scope and source boundary
 
