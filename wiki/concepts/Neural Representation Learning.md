@@ -10,7 +10,7 @@ authority_scope: human-readable-wiki-only
 created_by: ai
 content_origin: ai-assisted
 created_at: 2026-08-26
-updated_at: 2026-08-26
+updated_at: 2026-10-11
 review_status: unreviewed
 core_alignment: pass
 knowledge_status: core-system-requirement
@@ -35,3 +35,8 @@ The project evaluates [[Physics Knowledge Integration]] partly by whether it imp
 ## Evaluation implications
 
 Evidence would need to distinguish an actual integration benefit from gains caused by architecture size, training budget, or other confounders. Current Core files define the requirement but do not verify that a candidate mechanism satisfies it.
+
+
+## FD-NIG candidate distinction
+
+The draft `METHOD-0002` candidate, Frequency Difference Neural Interaction Graph (FD-NIG), preserves a freely learned representation through a shared message function that predicts complex pairwise coefficients. It aggregates $C_\theta(k,l,c)M(k)\operatorname{conj}(M(l))$ into bins indexed by the **discrete frequency difference** $q=(k-l)\bmod(H,W)$ (for a circular FFT grid). In the primary interpretation, the aggregated spectrum already represents **intensity**, so inverse FFT directly reconstructs the predicted spatial intensity; applying a second magnitude square would change the target and is not part of the primary method. Hermitian treatment is required for a real reconstructed image, while physical nonnegativity requires separate justification. Sparse pair selection, discrete indexing, nonnegativity policy, and complexity remain open design contracts. This is a candidate architecture only; it has no experiment or selection status, and `METHOD-0001` remains independent.
