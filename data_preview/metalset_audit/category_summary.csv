@@ -1,0 +1,9 @@
+category,file_count,png_count,non_png_count,direct_subdir_count,dimensions_or_type,channels,dtype,range,range_scope,notes
+levelsetILT,16472,16472,0,0,2048x2048,1,uint8,0..255,six selected samples,Observed sample values are binary 0/255; semantics unresolved.
+pixelILT,16472,16472,0,0,2048x2048,1,uint8,0..255,all files,Full range and binary assessment from existing authorized audit report; pairing by filename stem.
+litho,16423,16423,0,0,2048x2048,1,uint8,0..149,all files,Full range and continuous-grayscale assessment from existing authorized audit report; physical meaning unresolved.
+printed,16422,16422,0,0,2048x2048,1,uint8,0..255,six selected samples,Observed sample values binary 0/255; semantics unresolved.
+resist,16422,16422,0,0,2048x2048,1,uint8,0..255,six selected samples,Observed sample values 0..255 and many intermediate values; semantics unresolved.
+target,16472,16472,0,0,2048x2048,1,uint8,0..255,six selected samples,Observed sample values binary 0/255; semantics unresolved.
+gds,16472,0,16472,0,non-image file set,,,,all direct files,File extensions and semantics were not interpreted.
+glp,16472,0,16472,0,non-image file set,,,,all direct files,File extensions and semantics were not interpreted.
