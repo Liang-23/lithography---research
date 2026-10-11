@@ -156,3 +156,27 @@ This file is append-only. It records every creation, modification, rename, move,
 - **Scientific meaning:** Unchanged.
 - **Language preservation:** Passed.
 - **Remaining contradictions in the six approved areas:** None found in active governance files.
+
+---
+
+## [CORE-CHG-0005] Cloud-First Transition workspace boundary
+
+- **Date:** 2026-10-11
+- **Status:** applied
+- **Change type:** governance — administrative workspace migration
+- **Created by:** AI Agent
+- **Requested by:** User
+- **Approved by:** User
+- **Approval reference:** Explicit approval in this conversation on 2026-10-11
+- **ADR:** Not required; no scientific scope, requirement, method, experiment, or persistent research decision changed
+- **Affected files:**
+  - Updated `AGENTS.md`
+  - Updated `08_Project_Status/Context_Router.md`
+  - Appended this entry to `00_Project_Core/Core_Change_Log.md`
+- **Old wording/state:** The active project boundary was expressed as the Windows path `D:\Litho\2-3nm litho`.
+- **New wording/state:** The current Git working-tree root is the location-independent active project boundary, regardless of operating system or absolute filesystem path. `D:\Litho\2-3nm litho` remains a legacy backup and provenance reference only.
+- **Rationale:** Support governed Codex Cloud and GitHub operation while preserving historical provenance and the existing authority model.
+- **Evidence:** Administrative workspace review only; no scientific claim, external source, or research content was used.
+- **Compatibility checks:** Locked Core documents, scientific scope, authority hierarchy, Evidence verification rules, Experiment authorization rules, Core protections, ADR requirements, and historical provenance paths were preserved.
+- **Validation result:** `git diff --check` passed; all 7 repository Wiki-integrity unit tests passed; health and lint each reported the pre-existing 28 errors (13 absent `raw/` source files and 15 unresolved `High-dimensional AI Surrogate` Wiki links) with no newly introduced errors.
+- **Scientific meaning changed:** No

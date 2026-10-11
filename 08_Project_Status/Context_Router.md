@@ -69,8 +69,9 @@ Do not read or use by default:
 
 - `90_Quarantine/`
 - `99_Archive/`
-- files outside `D:\Litho\2-3nm litho`
-- parent `D:\Litho` notes, Wiki, code, or project history
+- files outside the current Git working-tree root
+- alternate clones, parent directories, or historical local workspaces, including `D:\Litho\2-3nm litho`,
+  unless the user explicitly authorizes access
 - external web content or chat history
 
 The user must explicitly authorize an exception. Authorization to inspect does not automatically authorize promotion into project knowledge.
