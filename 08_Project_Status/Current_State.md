@@ -13,12 +13,12 @@ reviewed_by:
 approved_by:
 approval_ref:
 created_at: 2026-08-26
-updated_at: 2026-09-21
+updated_at: 2026-10-11
 core_alignment: pass
 source_ids: [SRC-0001, SRC-0002, SRC-0003, SRC-0004, SRC-0005, SRC-0006, SRC-0007, SRC-0008, SRC-0009, SRC-0010, SRC-0011, SRC-0012, SRC-0013]
 data_ids: [DATA-0001]
 hypothesis_ids: [HYP-0001, HYP-0002, HYP-0003]
-method_ids: [METHOD-0001]
+method_ids: [METHOD-0001, METHOD-0002]
 experiment_ids: [EXP-0001, EXP-0002]
 decision_ids: [ADR-0001, ADR-0002, ADR-0003, ADR-0004]
 exclude_from_synthesis: false
@@ -29,6 +29,8 @@ exclude_from_synthesis: false
 ## Current phase
 
 `Candidate Architecture 3 kernel-prediction method and blocked feasibility-plan preparation; external MetalSet data registered but unfrozen; no Method selected or Experiment authorized`
+
+On 2026-10-11, `METHOD-0002` was documented as the independent draft candidate Frequency Difference Neural Interaction Graph (FD-NIG). It directly learns complex pairwise mask-frequency interactions routed by $q=k-l$, with explicit sparse-pair, discrete-index, Hermitian, nonnegative-output, and complexity requirements. The record does not select FD-NIG, create `HYP-0004`, authorize an experiment, freeze `DATA-0001`, or promote evidence. `METHOD-0001` remains unchanged.
 
 On 2026-09-21 the latest architecture figure was translated into candidate records `METHOD-0001`, `DATA-0001`, and draft-blocked `EXP-0002`. The candidate keeps the reference branch and postpones the correction branch. Its first proposed implementation is `x_t, mask m, timestep t, optical condition alpha -> conditioned U-Net -> predicted kernel tensor B -> differentiable FFT renderer -> clean-image estimate`.
 
@@ -123,7 +125,7 @@ The derived Wiki preserves this candidate status.
 - Verified Evidence: `EV-0001` (dynamic black-box solver response participates in loss; no backpropagation through $S$), `EV-0002` (direct neural field prediction in the reported evaluation path, without runtime proof), `EV-0003` (solver-inherited limitations and stabilization, without exact-feasibility or inference-safety proof), `EV-0004` (privileged CT-conditioned attention transfer to a CT-free Student), `EV-0005` (internal physics-aware attenuation-factor computation during diffusion), and `EV-0006` (privileged-input removal while iterative diffusion and the Student physics-aware path remain).
 - Physics Constraints: none registered.
 - Hypotheses: HYP-0001, HYP-0002, and HYP-0003 are registered as draft only; each records variables, conceptual comparisons, rejection conditions, and missing prerequisites. None is ready-to-test or supported.
-- Method Designs: `METHOD-0001` is registered as a draft candidate only; no Method is selected.
+- Method Designs: `METHOD-0001` and independent draft candidate `METHOD-0002` (FD-NIG) are registered as candidates only; no Method is selected.
 - Formal Experiments: `EXP-0001` and `EXP-0002` are draft/blocked planning records only and have no execution authority.
 - Accepted ADRs: `ADR-0002` (administrative Wiki/Obsidian architecture) and `ADR-0003` (governance responsibility and strategic/experiment decision boundary).
 - Rejected ADRs: `ADR-0001` (custom relationship registry and Graph projection).
