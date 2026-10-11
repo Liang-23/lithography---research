@@ -4,6 +4,30 @@ from __future__ import annotations
 import torch
 
 
+def select_sparse_pairs(pairs: torch.Tensor, limit: int,
+                        include_swapped: bool = True) -> torch.Tensor:
+    """Select a deterministic prefix while optionally closing every pair swap."""
+    if limit < 0:
+        raise ValueError("limit must be non-negative")
+    index = {tuple(row.tolist()): i for i, row in enumerate(pairs)}
+    selected = []
+    used = set()
+    for i, row in enumerate(pairs.tolist()):
+        if i in used:
+            continue
+        swap = (row[2], row[3], row[0], row[1])
+        group = [i]
+        if include_swapped and swap != tuple(row):
+            if swap not in index:
+                raise ValueError("pair list is missing a swapped pair")
+            group.append(index[swap])
+        if len(selected) + len(group) > limit:
+            break
+        selected.extend(group)
+        used.update(group)
+    return pairs[torch.tensor(selected, dtype=torch.long, device=pairs.device)]
+
+
 def route_pairs(pairs: torch.Tensor, height: int, width: int) -> torch.Tensor:
     q = torch.stack(((pairs[:, 0] - pairs[:, 2]) % height,
                      (pairs[:, 1] - pairs[:, 3]) % width), dim=1)

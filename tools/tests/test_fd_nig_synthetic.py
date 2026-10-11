@@ -5,8 +5,8 @@ import torch
 
 from tools.fd_nig_aggregation import (absolute_scales, aggregate, enforce_hermitian,
                                       hermitian_residual, inverse_real, pair_products,
-                                      route_pairs)
-from tools.fd_nig_reference import (exhaustive_aggregate, make_fixture,
+                                      route_pairs, select_sparse_pairs)
+from tools.fd_nig_reference import (exhaustive_aggregate, load_config, make_fixture,
                                     pair_products as reference_products,
                                     route_pairs as reference_route,
                                     zero_safe_error)
@@ -135,3 +135,31 @@ def test_sparse_repeatability_and_gradient_corner_case():
     inactive_loss = aggregate(inactive, zero_spectrum, pairs).abs().sum()
     (inactive_gradient,) = torch.autograd.grad(inactive_loss, inactive)
     assert torch.equal(inactive_gradient, torch.zeros_like(inactive_gradient))
+
+
+def test_sparse_selection_is_deterministic_and_swap_closed():
+    fixture = make_fixture(height=8, width=8)
+    selected = select_sparse_pairs(fixture.pairs, 256, include_swapped=True)
+    selected_again = select_sparse_pairs(fixture.pairs, 256, include_swapped=True)
+    assert torch.equal(selected, selected_again)
+    pairs = {tuple(row.tolist()) for row in selected}
+    assert all((row[2], row[3], row[0], row[1]) in pairs for row in pairs)
+
+
+def test_eight_by_eight_exhaustive_output_and_gradient_agreement():
+    fixture = make_fixture(height=8, width=8)
+    coefficients = fixture.coefficients.clone().requires_grad_(True)
+    candidate = aggregate(coefficients, fixture.spectrum, fixture.pairs)
+    reference = exhaustive_aggregate(coefficients, fixture.spectrum, fixture.pairs)
+    assert torch.allclose(candidate, reference, atol=1e-10, rtol=1e-10)
+    (candidate_grad,) = torch.autograd.grad(candidate.abs().sum(), coefficients, retain_graph=True)
+    (reference_grad,) = torch.autograd.grad(reference.abs().sum(), coefficients)
+    assert torch.allclose(candidate_grad, reference_grad, atol=1e-10, rtol=1e-10)
+    assert candidate_grad.abs().amax() > 0
+
+
+def test_proposal_settings_are_read_without_approval():
+    config = load_config("tools/fd_nig_config.json")
+    assert config["status"] == "proposal"
+    assert config["approval_status"] == "not_requested"
+    assert config["compute_budget"]["max_repetitions"] == 2

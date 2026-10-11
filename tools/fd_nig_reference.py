@@ -7,11 +7,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Tuple
+import json
+from pathlib import Path
 
 import torch
 
 
 Pair = Tuple[int, int, int, int]
+
+
+def load_config(path: str | Path) -> dict:
+    """Load proposal settings without changing or approving them."""
+    return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
 @dataclass(frozen=True)
