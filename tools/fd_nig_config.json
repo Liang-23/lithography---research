@@ -71,5 +71,5 @@
   "plan_approval_ref": null,
   "formal_execution_authorization_ref": null,
   "numerical_memory_freeze_status": "approved",
-  "numerical_memory_freeze_ref": "Project lead explicitly approved numerical acceptance thresholds, fixture/FFT/pair policy, and monitored-RSS memory in ChatGPT conversation, 2026-10-12; not Plan/execution approval"
+  "numerical_memory_freeze_ref": "Project lead explicit approval in ChatGPT conversation, 2026-10-12; numerical criteria and monitored-RSS policy only"
 }
