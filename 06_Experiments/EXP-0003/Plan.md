@@ -184,33 +184,48 @@ authorized.
 
 ## Compute budget and artifacts (proposal)
 
-The project lead **approved on 2026-10-12 only** a **120-second TOTAL
-wall-time budget across both complete repetitions**, not 120 seconds each.
-The shared execution deadline must not be reset between repetitions, and
-timeout/failure must be preserved. This approval does **not** freeze thresholds,
-seed, FFT/pair settings, the Plan, or formal execution.
+The project lead approved a **120-second TOTAL wall-time deadline** across
+both complete repetitions (2026-10-12). That is the maximum execution
+budget, not 120 seconds per repetition. If the first attempt fails or exhausts
+the deadline, stop and preserve all artifacts.
 
-Other resource settings remain proposals: CPU-only, one test process at a time,
-at most two repetitions, and a 2 GiB peak-memory budget. The launcher currently
-proposes an additional 2 GiB Linux RLIMIT_AS *virtual address space* cap as a
-conservative fail-closed implementation choice. RLIMIT_AS is not the same as
-the proposed peak-memory metric; its effect on PyTorch must be reviewed before
-final approval. No GPU, network data, training,
-or external simulator is required. Expected artifacts are a JSON test report,
-environment/version capture, fixture hash, and (if approved) a small gradient
-summary. No artifact may be described as scientific validation.
+The project lead additionally approved (2026-10-12) the following
+**monitored-RSS memory policy**. The acceptance metric is peak RSS summed
+conservatively across the runner and live test-process tree, `<= 2 GiB`.
+Monitor `/proc` process-tree RSS at intervals no greater than 100 ms and
+fail/kill the test process group if the measured sum reaches `1536 MiB`
+(1.5 GiB) or RSS measurement fails. Record each attempt peak, the overall
+observed peak and `/usr/bin/time -v` maximum RSS and cgroup memory
+events. A measurement exceeding 2 GiB is a failure even if the watchdog
+did not stop it. **Do not use RLIMIT_AS** as a substitute for RSS.
+This userspace watchdog is a conservative operational guardrail and
+**not an independently verified strict 2 GiB kernel-enforced cap**.
+No silent change of limits after any failure.
+
+Resource setup: CPU-only, at most two CPU threads, one test process at a
+time, at most two repetitions, no GPU, network data, training or external
+simulator. Expected artifacts are immutable per-attempt stdout/stderr,
+JUnit per-test outcomes, exit status, stopwatch/resource logs, a JSON
+summary, environment/version capture, fixture/config/code hashes and
+gradient diagnostics. The accepted scientific interpretation is bounded
+to numerical implementation consistency; it is not lithography validation.
 
 ## Unresolved prerequisites
 
 1. **Resolved, 2026-10-11:** Project lead explicitly approved treating
    `EXP-0003` as a `METHOD-0002` method-local numerical feasibility check,
    without creating `HYP-0004`. This does not approve test execution.
-2. **Partially resolved, 2026-10-12:** Project lead explicitly approved only
-   the shared 120-second TOTAL wall-time budget across up to two repetitions.
-   Numerical tolerances, seed, grid/FFT normalization, sparse-pair policy, the
-   remaining resource/environment details, and full Plan freeze remain pending.
-3. **Still blocked:** Final implementation review confirming reference/candidate
-   independence, adequate test coverage, and protected-file boundaries.
+2. **Resolved for numerical/resource settings only, 2026-10-12:**
+   Project lead explicitly approved the shared 120-second TOTAL budget,
+   the full numerical acceptance criteria, grid/seed/FFT/sparse policy,
+   and the monitored process-tree RSS memory policy. These settings
+   are frozen within EXP-0003 and may not be modified silently. This
+   **does not approve** the full Plan, formal execution, or use of
+   as-yet-unreviewed runner code.
+3. **Still blocked:** Complete static runner/test coverage implementation,
+   code review (including process-tree RSS monitoring and memory guard
+   behavior), artifact/provenance acceptance, and frozen code/environment
+   identifiers. The launcher remains unexecuted and unvalidated.
 4. **Still blocked:** Formal approval of this Plan (`approval_status`) before
    any test execution.
 
