@@ -119,7 +119,7 @@ def make_hermitian_coefficients(pairs: torch.Tensor, height: int, width: int,
 
 def make_fixture(seed: int = 20261011, height: int = 16, width: int = 16) -> Fixture:
     mask = make_mask(seed, height, width)
-    spectrum = torch.fft.fft2(mask)
+    spectrum = torch.fft.fft2(mask, norm="backward")
     pairs = enumerate_pairs(height, width)
     return Fixture(mask, spectrum, pairs, make_coefficients(pairs, seed),
                    make_hermitian_coefficients(pairs, height, width, seed),
