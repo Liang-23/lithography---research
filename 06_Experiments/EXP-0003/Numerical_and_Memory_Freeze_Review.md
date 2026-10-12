@@ -126,27 +126,32 @@ the userspace-watchdog policy with its non-hard enforcement limitation;
 it still requires static runner changes and independent review BEFORE
 any execution.
 
-## Remaining implementation/review blockers
+## Post-freeze static implementation status and remaining blockers
 
-1. The current pytest module does not yet apply the config tolerances
-   consistently: multiple numeric tolerances remain hardcoded, and
-   float32 is not exercised against every required 16x16
-   precision-specific gate. Wire the approved acceptance contract and
-   report per-gate numerical measurements, not only test booleans.
-   The test's sparse-pair selection must index coefficients with the
-   exact same selected pair indices after swapped-pair closure.
-2. The finite-difference test checks the real parameter perturbation
-   only. Add a chosen nondegenerate imaginary-parameter perturbation
-   and explicit active/unused gradient controls.
-3. The Hermitian DC/Nyquist check currently uses the **projected**
-   spectrum; add the raw unprojected check at the specified precision.
-   Add a clear binary-mask fixture where the Plan requires it.
-4. Implement process-tree RSS monitoring, early stop, and peak reporting;
-   remove RLIMIT_AS only if this new memory policy is approved. The
-   existing guarded runner is **not yet runtime-validated**.
-5. Preserve SHA-256 provenance, unique append-only Run IDs, immutable
-   per-attempt logs and a shared 120-second deadline. Independently
-   review the suite, protocol, runner and approved commit before any run.
+1. Static revisions in PR #7 have wired 16x16 complex128/complex64
+   acceptance tests to the frozen config; independent complex pair
+   products, zero-safe per-bin aggregation, raw Hermitian/DC/Nyquist,
+   direct inverse, 4x4 real/imag finite differences, 8x8 gradient
+   agreement, 16x16 gradient finiteness, binary mask and sparse
+   swapped-pair index alignment are now present. **None have run
+   since the freeze**. Their completeness and mathematical correctness
+   require independent review.
+2. Static runner updates replaced RLIMIT_AS with a Linux /proc
+   process-tree RSS sampler, a 1536 MiB early stop, a 2 GiB acceptance
+   metric and immutable per-attempt logs. Runtime behavior, timing
+   and any sample-overrun cases remain **unverified**; the watchdog
+   is not a guaranteed kernel-enforced cap.
+3. The 4x4/8x8 calibration was on an older commit, not these revised
+   tests/runner. The 16x16 runtime and numerical failure modes remain
+   unknown; the frozen thresholds must never be revised silently.
+4. Freeze an exact reviewed executable revision and environment,
+   confirm reserved append-only Run Log metadata and artifact
+   retention, obtain **formal Plan approval** and then distinct
+   **execution authorization**. No formal run may start before all
+   independent gates have been satisfied.
+5. The unique Run ID, two-repetition 120-second total deadline and
+   code/config/fixture/environment SHA-256 provenance must be
+   checked by an independent reviewer before execution.
 
 ## Authority boundary
 
