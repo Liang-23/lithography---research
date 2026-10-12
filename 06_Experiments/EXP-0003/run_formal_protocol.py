@@ -212,19 +212,57 @@ def execute_attempt(run_dir: Path, index: int, python: Path,
     }
     timed_out = remaining <= 0
     return_code = None
+    memory_early_stop = False
+    measurement_failure = None
+    launch_error = None
+    peak_rss_bytes = 0
+    rss_stop_bytes = 1536 * 1024 ** 2
+    rss_limit_bytes = 2 * 1024 ** 3
+    period_seconds = 0.1
+    record["cgroup_memory_events_before"] = cgroup_value("/sys/fs/cgroup/memory.events")
 
     with stdout_path.open("x") as out, stderr_path.open("x") as err:
         if remaining > 0:
-            process = subprocess.Popen(
-                command, cwd=ROOT, env=env, stdout=out, stderr=err,
-                start_new_session=True, preexec_fn=limits,
-            )
             try:
-                return_code = process.wait(timeout=remaining)
-            except subprocess.TimeoutExpired:
-                timed_out = True
-                os.killpg(process.pid, signal.SIGKILL)
-                return_code = process.wait()
+                # RLIMIT_AS is deliberately absent: virtual memory is not RSS.
+                process = subprocess.Popen(
+                    command, cwd=ROOT, env=env, stdout=out, stderr=err,
+                    start_new_session=True,
+                )
+                while True:
+                    if process.poll() is not None:
+                        return_code = process.returncode
+                        break
+                    left = deadline - time.monotonic()
+                    if left <= 0:
+                        timed_out = True
+                        group_kill(process)
+                        return_code = process.returncode
+                        break
+                    try:
+                        sampled = process_tree_rss_bytes(process.pid)
+                        peak_rss_bytes = max(peak_rss_bytes, sampled)
+                    except (OSError, ValueError, RuntimeError) as exc:
+                        if process.poll() is None:
+                            measurement_failure = repr(exc)
+                            group_kill(process)
+                            return_code = process.returncode
+                            break
+                        return_code = process.returncode
+                        break
+                    if sampled >= rss_stop_bytes:
+                        memory_early_stop = True
+                        group_kill(process)
+                        return_code = process.returncode
+                        break
+                    try:
+                        return_code = process.wait(timeout=min(period_seconds, left))
+                        break
+                    except subprocess.TimeoutExpired:
+                        continue
+            except (OSError, ValueError, RuntimeError) as exc:
+                launch_error = repr(exc)
+                err.write("Unable to launch/monitor formal attempt: " + launch_error + "\n")
         else:
             err.write("Total 120-second deadline exhausted before this attempt.\n")
 
@@ -232,6 +270,23 @@ def execute_attempt(run_dir: Path, index: int, python: Path,
     record["elapsed_seconds"] = time.monotonic() - started
     record["exit_code"] = return_code
     record["timed_out"] = timed_out
+    record["memory_early_stop"] = memory_early_stop
+    record["memory_measurement_failure"] = measurement_failure
+    record["launch_error"] = launch_error
+    record["watchdog_peak_process_tree_rss_bytes"] = peak_rss_bytes
+    record["rss_early_stop_bytes"] = rss_stop_bytes
+    record["rss_acceptance_limit_bytes"] = rss_limit_bytes
+    record["cgroup_memory_events_after"] = cgroup_value("/sys/fs/cgroup/memory.events")
+    # GNU time is an independent process maximum, not a substitute for
+    # the monitored sum of runner+descendant RSS.
+    record["time_peak_rss_kib"] = time_max_rss_kib(stderr_path)
+    time_peak = record["time_peak_rss_kib"]
+    record["memory_accepted"] = (
+        not memory_early_stop and measurement_failure is None
+        and launch_error is None
+        and peak_rss_bytes < rss_stop_bytes
+        and (time_peak is not None and time_peak * 1024 <= rss_limit_bytes)
+    )
     record["sha256"] = {
         p.name: digest(p) for p in (stdout_path, stderr_path)
     }
@@ -252,8 +307,14 @@ def execute_attempt(run_dir: Path, index: int, python: Path,
                 status = ("failure" if failure is not None else
                           "error" if error is not None else
                           "skipped" if skipped is not None else "passed")
+                props = case.find("properties")
+                metrics = {
+                    prop.get("name"): prop.get("value")
+                    for prop in list(props) if prop.get("name")
+                } if props is not None else {}
                 test_results.append({"id": test_id, "status": status,
-                                     "duration_seconds": case.get("time")})
+                                     "duration_seconds": case.get("time"),
+                                     "measurements": metrics})
             record["test_count"] = len(cases)
             record["failures"] = sum(case.find("failure") is not None for case in cases)
             record["errors"] = sum(case.find("error") is not None for case in cases)
@@ -266,7 +327,8 @@ def execute_attempt(run_dir: Path, index: int, python: Path,
     record["test_ids"] = test_ids
     record["test_results"] = test_results
     record["passed"] = (
-        not timed_out and return_code == 0 and xml_problem is None
+        not timed_out and record["memory_accepted"] and return_code == 0
+        and xml_problem is None
         and len(test_ids) >= 8 and record["failures"] == 0
         and record["errors"] == 0 and record["skipped"] == 0
     )
