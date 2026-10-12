@@ -227,7 +227,7 @@ def test_16x16_primary_dense_candidate_gradient_is_finite_and_active(record_prop
     assert grad.imag.abs().max() > 0
 
 
-def test_sparse_16x16_prefix_swap_closure_coefficient_alignment_and_repeatability():
+def test_sparse_16x16_prefix_swap_closure_coefficient_alignment_and_repeatability(record_property):
     fixture, spectrum, _ = fixture_for(torch.complex128)
     selected = select_sparse_pairs(fixture.pairs, CONFIG["pair_policy"]["sparse_count"],
                                    include_swapped=True)
@@ -245,9 +245,9 @@ def test_sparse_16x16_prefix_swap_closure_coefficient_alignment_and_repeatabilit
     second = aggregate(coefficients, spectrum, selected)
     reference = exhaustive_aggregate(coefficients, spectrum, selected)
     assert torch.equal(first, second)
-    atol, rtol = tolerance("float64")
-    assert torch.all((first - reference).abs() <= atol +
-                     rtol * reference.abs().sum())
+    ref_products = independently_expanded_products(coefficients, spectrum, selected)
+    assert_zero_safe(first, reference, ref_products, selected,
+                     "float64", record_property, "sparse_16")
     assert float(hermitian_residual(first)) <= CONFIG["tolerances"]["hermitian"]["float64"]
 
 
