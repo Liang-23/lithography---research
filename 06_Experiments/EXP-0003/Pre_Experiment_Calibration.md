@@ -45,3 +45,17 @@ The exact measured report and provenance are preserved below. The reproducibilit
 The zero-safe excess is `abs(candidate-reference) - (atol + rtol*scale)` using the diagnostic proposal values. Negative values are within those diagnostic bounds. Float32-versus-high-precision differences are rounding diagnostics, not implementation errors.
 
 No failures or interruptions occurred. No result is promoted to Evidence or a formal run. Proposed tolerances remain proposals and are not frozen or approved.
+
+## Subsequent static-review clarification (2026-10-12)
+
+The preserved numerical measurements above were produced at the explicitly
+recorded **original calibration commit** and have not been recomputed.
+The original calibration's reported `cancellation-bin error / scale` chose a
+bin with the smallest positive absolute-contribution scale; this is **not**
+a validated measure of destructive cancellation. The later interim revision
+selected by error-to-scale ratio, which also does **not** measure cancellation.
+The now-revised, **unexecuted** reproducibility script separates
+`cancellation_ratio = abs(reference_bin) / sum(abs(contributions))` from
+`error_to_scale_ratio = abs(candidate-reference) / sum(abs(contributions))`.
+No revised calibration outcomes are claimed, and historical values above
+must not be silently relabeled or substituted.
