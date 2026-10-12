@@ -32,8 +32,10 @@ deadline solely to preserve outcomes, not to execute additional tests.
 3. The frozen `tools/fd_nig_config.json` must have `status: frozen`,
    `approval_status: approved`, `tolerances.status: approved` and matching
    nonblank approval and formal execution references.
-4. Reserve a unique `RUN-EXP-0003-NNN` in append-only `Run_Log.md` and
+4. Reserve a unique `RUN-EXP-0003-NNN` in append-only `Run_Log.md`
+   with an exact heading such as `## RUN-EXP-0003-001 (reserved)` and
    independently review the exact committed branch, suite, and environment.
+   The launcher refuses to start if the reservation is absent or mismatched.
 5. Confirm the suite covers every Plan gate. The launcher's structural
    approval check does **not** replace scientific review.
 
