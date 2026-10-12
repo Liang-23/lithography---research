@@ -3,6 +3,8 @@ id: EXP-0003
 title: "FD-NIG synthetic frequency-difference aggregation feasibility"
 experiment_state: draft-blocked
 approval_status: not_requested
+numerical_memory_freeze_status: approved
+numerical_memory_freeze_ref: "Project lead explicit approval in ChatGPT conversation, 2026-10-12; numerical criteria and monitored-RSS policy only"
 approval_ref:
 formal_execution_authorization_ref:
 method_ids: [METHOD-0002]
@@ -21,9 +23,12 @@ This is the smallest proposed synthetic feasibility experiment for the candidate
 Frequency Difference Neural Interaction Graph (FD-NIG). It is a numerical and
 automatic-differentiation check of the primary intensity-spectrum formulation in
 `METHOD-0002`; it is not a lithography validation, a Method selection, or a real
-`DATA-0001` experiment. This plan must remain blocked until the prerequisites and
-thresholds below are explicitly approved. No run, result, checkpoint, or scientific
-claim is authorized by this draft.
+`DATA-0001` experiment. Numerical acceptance gates, seed/FFT/pair selection, and the
+monitored-RSS policy are **frozen by a scope-limited project-lead decision
+on 2026-10-12**. However, the complete Plan remains `draft-blocked` and is
+not preregistered or approved for execution: static implementation review,
+required artifacts, and separate formal execution approval are pending.
+No run, result, checkpoint, or scientific claim is authorized by this draft.
 
 ## Research question
 
@@ -52,16 +57,19 @@ forbidden.
   not a registered physical constraint.
 - Data: no `DATA-0001` or MetalSet files; all inputs are generated and frozen in
   the plan/configuration.
-- Approval blockers: project-lead approval of proposed thresholds, compute
-  budget, FFT/index convention, sparse-pair policy, and implementation scope,
-  followed by formal approval of the experiment Plan. Hypothesis linkage is
-  resolved separately above. No execution is permitted while `draft-blocked`.
+- The project lead separately approved (2026-10-12) the **exact numerical
+  acceptance settings and monitored-RSS memory policy** in
+  `Numerical_and_Memory_Freeze_Review.md`, in addition to the earlier
+  method-local interpretation and 120-second combined budget. These
+  experiment-local settings are now frozen but **do not constitute approval
+  of the full Plan or of execution**. Implementation review, artifact/run
+  provenance gate and independent authorization remain blocked.
 
-## Frozen synthetic contract (proposal)
+## Frozen synthetic contract (scope-limited settings approval, 2026-10-12)
 
-- Grid: circular $H=W=16$, with integer FFT bins in native unshifted order
-  (`torch.fft.fftfreq`/`fft2` convention); a $32\times32$ repeat is optional
-  only after the $16\times16$ gate passes.
+- Grid: circular $H=W=16$, integer FFT bins in native unshifted order,
+  `torch.fft.fft2/ifft2(norm="backward")` (forward unnormalized, inverse
+  divided by $HW$). No 32x32 repeat is in this approved test.
 - Mask: deterministic real-valued spatial pattern generated from seed `20261011`
   (two rectangles plus one sinusoidal component), with a documented binary and
   non-binary case. Compute $M=\operatorname{FFT2}(m)$ using an explicit
@@ -78,16 +86,15 @@ forbidden.
 - Output: complex $\widehat I(q)$, then one `ifft2`; the test checks the
   imaginary residual and does not apply $|\cdot|^2$.
 
-## Reference implementation and planned modules
+## Reference implementation and static code
 
-The implementation is planned, but must not be created or executed as part of
-this draft-only task. The reference path should use a transparent Python/NumPy
-or PyTorch loop over every pair and direct indexed accumulation into a complex
-`[H,W]` array. The FD-NIG path should use the same tensors with vectorized
-complex multiply and complex scatter-add. Both paths must share only input
-fixtures and conventions, not aggregation code, so agreement is meaningful.
+The candidate and independent reference implementation files already exist
+in the draft PR. Their numerical behavior is **not validated by a formal run**.
+The reference uses an explicit loop and direct accumulation; the candidate
+uses independent vectorized complex multiplication and scatter-add. Both
+must share only fixtures and conventions, not reduction code.
 
-Planned files for a later approved implementation:
+Static files in the current draft PR:
 
 1. `tools/fd_nig_reference.py`: exhaustive pair enumeration, modular routing,
    loop reference, and fixture generation.
@@ -98,28 +105,27 @@ Planned files for a later approved implementation:
 4. `tools/fd_nig_config.json`: frozen seed, grid, normalization, pair policy,
    tolerances, and budget; generated only after approval.
 
-## Ordered tests and proposed gates
+## Frozen numerical acceptance gates (scope-limited approval, 2026-10-12)
 
-All thresholds are proposals requiring approval. Tests compare the independent
-reference implementation with the candidate aggregation wherever applicable.
+The project lead explicitly approved the exact criteria documented in
+`Numerical_and_Memory_Freeze_Review.md`. They are now frozen as
+experiment-local numerical gates, **not proof of their attainability** at
+16x16. No tolerance may be relaxed after a failure without a new review,
+a separately recorded deviation, and reapproval BEFORE any new formal run.
 
-**Floating-point accumulation review:** An exhaustive 16x16 frequency-pair
-reference sums 65,536 complex contributions, and different summation orders
-may lead to materially different float32 rounding. Before approving the
-candidate tolerances, document the reduction order, compare float64
-reference/vectorized outputs, and characterize float32-vs-float64 errors
-(including cancellation-heavy and empty bins) using separately authorized
-calibration fixtures. The values listed below are starting proposals, not
-empirically justified gates. Any revision of numerical thresholds must be
-reviewed and frozen BEFORE executing the formal experiment; do not silently
-relax thresholds after a failed run.
+The independent loop reference sums 65,536 complex contributions at 16x16;
+the previous 4x4/8x8 calibration did **not** establish 16x16 performance.
+The precision-specific scale-aware errors, Hermitian raw-output limits,
+autograd/finite-difference checks, and stress checks below are mandatory.
 
 1. **Frequency-difference routing:** every enumerated pair lands in exactly one
    bin and the candidate route equals `(k-l) mod (H,W)` for 100% of pairs.
 2. **Complex pairwise multiplication:** compare
-   $C\,M(k)\operatorname{conj}(M(l))$ against an independently expanded real/imag
-   calculation; maximum absolute error $\le 1\times10^{-6}$ (float32) or
-   $\le 1\times10^{-12}$ (float64).
+   $C\,M(k)\operatorname{conj}(M(l))$ against an independently expanded
+   real/imag calculation using the per-term **scale-aware** bound
+   $|p_\mathrm{candidate}-p_\mathrm{reference}|
+   \le a_\mathrm{tol}+r_\mathrm{tol}|p_\mathrm{reference}|$.
+   Record maximum absolute differences separately.
 3. **Complex scatter-add:** compare candidate and independent loop
    reference for all output bins, including zero, one, and many contributing
    pairs. A pure relative error is undefined when the reference bin is
@@ -129,37 +135,47 @@ relax thresholds after a failed run.
    `scale[q]` is the independently accumulated sum of the absolute
    magnitudes of all pair contributions to bin q. Empty bins use the
    absolute tolerance. Suggested initial float32 values are
-   `atol=1e-6` and `rtol=1e-5`; float64 values may start at
-   `atol=1e-12` and `rtol=1e-12`. These values are NOT approved:
-   determine whether they fit the actual numerical magnitudes and
-   addition order before freezing the experiment plan. Record maximum
-   absolute error and cancellation-heavy bin errors separately.
-4. **Conjugate symmetry:** for the Hermitian fixture,
-   $\max_q|\widehat I(q)-\operatorname{conj}(\widehat I(-q))|\le1\times10^{-5}$
-   (float32); DC and self-conjugate Nyquist bins have imaginary magnitude
-   $\le1\times10^{-6}$.
-5. **Real inverse FFT:** `ifft2(\widehat I)` has maximum imaginary residual
-   $\le1\times10^{-5}$ (float32), and the real output is identical between
-   reference and candidate within the aggregation tolerance. No magnitude square
-   is performed.
+   `atol=1e-6` and `rtol=1e-5`; float64
+   `atol=1e-12` and `rtol=1e-12`, **approved and frozen** for
+   both per-term and zero-safe aggregation comparisons. Record maximum
+   absolute error and cancellation-heavy-bin errors separately; the
+   cancellation ratio is $|I_\mathrm{reference}(q)|/A_q$ for $A_q>0$.
+4. **Conjugate symmetry, before projection:** on RAW Hermitian
+   fixtures, $\max_q|\widehat I(q)-\operatorname{conj}(\widehat I(-q))|$
+   is $\le 1e-10$ (complex128) or $\le 1e-5$ (complex64).
+   DC and self-conjugate Nyquist imaginary magnitude is $\le 1e-10$
+   (complex128) or $\le 1e-6$ (complex64). Check projection separately;
+   it must never disguise a raw spectrum violation.
+5. **Real inverse FFT:** `ifft2(\widehat I,norm="backward")`
+   has maximum imaginary residual $\le 1e-10$ (complex128) or
+   $\le 1e-5$ (complex64). Compare the reference and candidate real
+   inverse outputs against the frozen numerical bounds. **No magnitude
+   square** is performed.
 6. **Gradient propagation:** with a scalar loss equal to the mean squared error
    of the real inverse-FFT output against a fixed real target, gradients
    must be finite for all active independent parameter components, with
    nonzero gradients verified on chosen nondegenerate active components.
    Zero gradients on masked, unused, or symmetry-constrained terms are
    permitted and must be documented. Centered finite-difference spot
-   checks compare effective independent parameters using both absolute
-   and relative error tolerances; numerical values remain proposals
-   subject to approval, and near-zero reference gradients require the
+   checks compare both independent real and imaginary parameter
+   perturbations, with centered step $h=1e-6$, `atol=1e-5`,
+   `rtol=1e-4`. Require at least one nonzero nondegenerate active real
+   and imaginary component. Candidate/reference 8x8 gradients use
+   `atol=rtol=1e-10`. Near-zero reference gradients require the
    absolute tolerance rather than division by zero.
 7. **Finite/stability gate:** all intermediate and final real/imaginary values,
    losses, and gradients are finite for the normal fixture and a stress fixture
    scaled by $10^3$; no NaN/Inf and no runtime overflow.
-8. **Sparse versus exhaustive:** on tiny $4\times4$ and $8\times8$ grids where
-   sparse selection equals the exhaustive pair set, outputs and gradients meet
-   the scatter-add tolerance. The $16\times16$ sparse policy is then checked
-   for deterministic repeatability; it is not judged against exhaustive output
-   when the pair sets differ.
+8. **Sparse versus exhaustive:** on tiny $4\times4$ and $8\times8$
+   grids where retained pairs equal exhaustive pairs, candidate/reference
+   outputs and gradients must meet the frozen gates. At 16x16, use the
+   first 256 lexicographic pairs **plus unique swapped partners**, indexing
+   coefficients by those same pair indices. Test deterministic repeatability
+   and pair-swap closure; never compare sparse versus dense outputs when
+   pair sets differ. Test both binary and nonbinary masks.
+   Primary 16x16 dense/symmetry/inverse/gradient gates use complex128;
+   16x16 pair-product, aggregation, symmetry and inverse numerical gates
+   additionally use complex64. No extra 32x32 run is approved.
 
 The gate is pass only if every required test passes in two consecutive runs with
 the same seed and the recorded environment. Any failed test blocks all later
