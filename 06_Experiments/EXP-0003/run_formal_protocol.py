@@ -173,16 +173,24 @@ def execute_attempt(run_dir: Path, index: int, python: Path,
         p.name: digest(p) for p in (stdout_path, stderr_path)
     }
     test_ids = []
+    test_results = []
     xml_problem = None
     if junit_path.is_file():
         record["sha256"][junit_path.name] = digest(junit_path)
         try:
             xml = ET.parse(junit_path).getroot()
             cases = list(xml.iter("testcase"))
-            test_ids = [
-                f'{case.get("classname", "")}.{case.get("name", "")}'
-                for case in cases
-            ]
+            for case in cases:
+                test_id = f'{case.get("classname", "")}.{case.get("name", "")}'
+                test_ids.append(test_id)
+                failure = case.find("failure")
+                error = case.find("error")
+                skipped = case.find("skipped")
+                status = ("failure" if failure is not None else
+                          "error" if error is not None else
+                          "skipped" if skipped is not None else "passed")
+                test_results.append({"id": test_id, "status": status,
+                                     "duration_seconds": case.get("time")})
             record["test_count"] = len(cases)
             record["failures"] = sum(case.find("failure") is not None for case in cases)
             record["errors"] = sum(case.find("error") is not None for case in cases)
@@ -193,6 +201,7 @@ def execute_attempt(run_dir: Path, index: int, python: Path,
         xml_problem = "JUnit XML was not produced"
     record["junit_parse_error"] = xml_problem
     record["test_ids"] = test_ids
+    record["test_results"] = test_results
     record["passed"] = (
         not timed_out and return_code == 0 and xml_problem is None
         and len(test_ids) >= 8 and record["failures"] == 0
@@ -232,6 +241,15 @@ def main() -> int:
     branch = git("branch", "--show-current")
     if branch != "task/fd-nig-verification":
         raise RuntimeError(f"unexpected branch: {branch}")
+    log_path = EXPERIMENT / "Run_Log.md"
+    if not log_path.is_file():
+        raise RuntimeError("no append-only Run_Log.md reservation exists")
+    reserved = re.search(
+        r"(?m)^##[ 	]+" + re.escape(args.run_id) + r"[ 	]+\(reserved\)[ 	]*$",
+        log_path.read_text(encoding="utf-8"),
+    )
+    if not reserved:
+        raise RuntimeError("Run ID has not been explicitly reserved in Run_Log.md")
 
     output_root = args.output_root.resolve()
     if output_root == ROOT or ROOT in output_root.parents:
