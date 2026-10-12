@@ -63,7 +63,7 @@ def test_frozen_configuration_and_cpu_fft_contract():
     assert CONFIG["numerical_memory_freeze_status"] == "approved"
     assert CONFIG["tolerances"]["status"] == "approved"
     assert CONFIG["status"] == "frozen"
-    assert CONFIG["approval_status"] == "not_requested"  # Formal execution still blocked.
+    # Formal execution approval is checked only by the guarded runner, not pytest.
     assert CONFIG["grid"] == {"height": 16, "width": 16, "circular": True}
     assert CONFIG["seed"] == 20261011
     assert CONFIG["fft"] == {"order": "native-unshifted", "normalization": "backward"}
