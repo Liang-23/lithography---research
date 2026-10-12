@@ -2,7 +2,7 @@
 schema_version: "1.0"
 id: EXP-0003-FREEZE-REVIEW
 type: experiment-local-review
-title: "EXP-0003 numerical gates and memory policy: project-lead decision draft"
+title: "EXP-0003 numerical and monitored-RSS settings: scope-limited approved freeze"
 lifecycle_status: draft
 authority_class: working
 authority_scope: pre-experiment-proposal-only
@@ -11,19 +11,23 @@ content_origin: ai-assisted
 created_at: 2026-10-12
 updated_at: 2026-10-12
 owner: project-lead
-review_status: unreviewed
+review_status: approved
+approved_by: project-lead
+approval_ref: "Explicit ChatGPT conversation approval, 2026-10-12; freeze numerical settings and monitored-RSS memory policy only"
 experiment_ids: [EXP-0003]
 method_ids: [METHOD-0002]
 exclude_from_synthesis: true
 ---
 
-# Numerical gates and memory policy: review for project-lead freeze
+# Numerical gates and memory policy: approved scope-limited freeze
 
-**Not approved or frozen. No permission to execute EXP-0003.**
-This file is a review-ready proposal, not a formal Plan amendment or a Run.
-The project lead explicitly approved only a **120-second total** wall-time
-budget across up to two repetitions (2026-10-12). The following numerical
-and memory choices still need explicit approval and implementation review.
+**Approved and frozen by the project lead (2026-10-12), ONLY for
+experiment-local numerical acceptance settings and monitored-RSS memory
+policy. No formal Plan approval or permission to execute EXP-0003.**
+The project lead had separately approved the shared 120-second total
+wall-time budget across two repetitions. This additional explicit approval
+freezes the detailed numerical and memory choices below; remaining code
+implementation, static review and execution approval are independent gates.
 
 ## Existing calibration: evidence boundary
 
@@ -35,7 +39,7 @@ zero-safe excess was negative under the *proposed* bounds, and peak process
 RSS was about 235 MiB. These observations do not calibrate every 16x16
 condition, stress case, or gradient test.
 
-## Recommended numerical contract (requires approval)
+## Frozen numerical contract (scope-limited project-lead approval)
 
 - Grid: circular 16x16, unshifted DFT frequency order, torch.fft.fft2/ifft2
   with norm="backward" (forward unnormalized, inverse divided by H*W).
@@ -96,7 +100,7 @@ condition, stress case, or gradient test.
 - Two complete test repetitions must fit within one shared 120-second
   wall-time deadline, approved separately by the project lead.
 
-## Recommended memory policy (requires approval)
+## Frozen monitored-RSS memory policy (scope-limited project-lead approval)
 
 **Decision metric:** peak process-tree resident-set size (RSS) including
 runner and child test processes, <= **2 GiB total**. Record in MiB and
@@ -117,8 +121,10 @@ If a dedicated writable cgroup v2 with memory.max=2GiB is available and
 independently reviewed, a strict kernel cap may be substituted before
 approval; otherwise explicitly disclose the watchdog's non-hard nature.
 
-No 2 GiB hard enforcement is currently verified; choosing this policy
-requires static runner changes and independent review before execution.
+No 2 GiB hard enforcement is currently verified. The project lead approved
+the userspace-watchdog policy with its non-hard enforcement limitation;
+it still requires static runner changes and independent review BEFORE
+any execution.
 
 ## Remaining implementation/review blockers
 
@@ -144,10 +150,10 @@ requires static runner changes and independent review before execution.
 
 ## Authority boundary
 
-A separate explicit project-lead sign-off on **the exact choices above**
-is required before changing Plan/config acceptance fields to frozen.
-Even after a freeze, the formal EXP-0003 Plan approval and the execution
-authorization remain separate, ungranted gates. No HYP-0004, ADR,
+The explicit project-lead sign-off on **these exact choices** occurred
+in ChatGPT on 2026-10-12. The Plan/config **numerical and memory settings**
+may be marked frozen, but the formal EXP-0003 Plan approval and
+execution authorization remain separately ungranted gates. No HYP-0004, ADR,
 METHOD-0002 selection, DATA-0001 freeze or evidence promotion is implied.
 
 Wiki projection: no projection needed; this is experiment-local numerical
