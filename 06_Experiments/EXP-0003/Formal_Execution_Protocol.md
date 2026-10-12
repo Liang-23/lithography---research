@@ -132,6 +132,18 @@ tracked worktree. Running without `--execute` is refused.
 - The launcher sets **one 120-second monotonic deadline** for both complete
   test repetitions, including fixture serialization and between-run overhead.
   It never resets the deadline.
+- Before accepting a process exit, the runner checks the remaining shared
+  time. It also records a monotonic execution-finish timestamp *before*
+  post-run artifact processing. Any completion observed after the deadline
+  is recorded as a timeout/failure even if the child reports exit code zero.
+  A deadline already reached before launch forbids starting another attempt.
+- Each attempt records whether it finished within the shared deadline and
+  its total elapsed time since the shared start. The final `PASS` gate
+  explicitly requires both repetitions to be within this same deadline.
+  The existing `total_elapsed_seconds` summary also includes subsequent
+  artifact processing and therefore is not the execution-time acceptance
+  measurement. Archival can continue after 120 s solely to preserve outcomes.
+  This is userspace timing enforcement, not a kernel-hard real-time guarantee.
 - CPU-only child processes use `OMP_NUM_THREADS=2` and
   `MKL_NUM_THREADS=2`. A 100ms process-tree RSS watchdog enforces a
   **1536 MiB conservative early-stop**, with 2 GiB peak RSS acceptance
