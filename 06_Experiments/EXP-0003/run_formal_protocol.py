@@ -273,7 +273,7 @@ def execute_attempt(run_dir: Path, index: int, python: Path,
     record["cgroup_memory_events_before"] = cgroup_value("/sys/fs/cgroup/memory.events")
 
     with stdout_path.open("x") as out, stderr_path.open("x") as err:
-        if remaining > 0:
+        if remaining > 0 and time.monotonic() < deadline:
             process = None
             try:
                 # RLIMIT_AS is deliberately absent: virtual memory is not RSS.
@@ -283,13 +283,15 @@ def execute_attempt(run_dir: Path, index: int, python: Path,
                 )
                 last_sample = None
                 while True:
-                    if process.poll() is not None:
-                        return_code = process.returncode
-                        break
+                    # Enforce the shared deadline before accepting a process exit.
                     left = deadline - time.monotonic()
                     if left <= 0:
                         timed_out = True
-                        group_kill(process)
+                        if process.poll() is None:
+                            group_kill(process)
+                        return_code = process.returncode
+                        break
+                    if process.poll() is not None:
                         return_code = process.returncode
                         break
                     try:
@@ -326,7 +328,22 @@ def execute_attempt(run_dir: Path, index: int, python: Path,
                     return_code = process.returncode
         else:
             err.write("Total 120-second deadline exhausted before this attempt.\n")
+        # Snapshot the end of execution before post-run artifact processing.
+        execution_finished_at = time.monotonic()
 
+    # Never accept a zero exit code observed beyond the shared 120 s deadline.
+    # A late return is conservatively treated as a timeout, not a PASS.
+    if execution_finished_at > deadline:
+        timed_out = True
+    record["execution_finished_within_deadline"] = (
+        not timed_out and execution_finished_at <= deadline
+    )
+    record["execution_elapsed_seconds_since_shared_start"] = (
+        execution_finished_at - (deadline - 120)
+    )
+    record["remaining_shared_budget_seconds_at_execution_finish"] = (
+        deadline - execution_finished_at
+    )
     record["end_utc"] = utc_now()
     record["elapsed_seconds"] = time.monotonic() - started
     record["exit_code"] = return_code
@@ -388,7 +405,8 @@ def execute_attempt(run_dir: Path, index: int, python: Path,
     record["test_ids"] = test_ids
     record["test_results"] = test_results
     record["passed"] = (
-        not timed_out and record["memory_accepted"] and return_code == 0
+        record["execution_finished_within_deadline"]
+        and record["memory_accepted"] and return_code == 0
         and xml_problem is None
         and len(test_ids) >= 8 and record["failures"] == 0
         and record["errors"] == 0 and record["skipped"] == 0
@@ -518,6 +536,10 @@ def main() -> int:
         (int(item.get("watchdog_peak_process_tree_rss_bytes", 0))
          for item in records), default=0,
     )
+    all_attempts_within_shared_deadline = (
+        len(records) == 2 and
+        all(item.get("execution_finished_within_deadline") is True for item in records)
+    )
     summary = {
         "experiment": "EXP-0003",
         "same_test_ids_across_repetitions": same_test_ids,
@@ -528,7 +550,16 @@ def main() -> int:
         "run_id": run_id,
         "attempts": records,
         "total_elapsed_seconds": time.monotonic() - start,
-        "passed": len(records) == 2 and same_test_ids and all(x.get("passed") for x in records),
+        "execution_elapsed_seconds_through_last_attempt": (
+            records[-1].get("execution_elapsed_seconds_since_shared_start")
+            if records else None
+        ),
+        "all_attempts_within_shared_deadline": all_attempts_within_shared_deadline,
+        "passed": (
+            len(records) == 2 and same_test_ids
+            and all_attempts_within_shared_deadline
+            and all(x.get("passed") for x in records)
+        ),
         "completed_utc": utc_now(),
     }
     write_json_new(run_dir / "summary.json", summary)
