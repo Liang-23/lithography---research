@@ -1,37 +1,49 @@
 # EXP-0003 Formal Execution Protocol (proposal, not authorized)
 
 This is an **unexecuted implementation protocol**, not a formal Run or an
-approved/preregistered Plan. It does not authorize anything, promote Evidence,
-select METHOD-0002, or change experiment status.
+approved/preregistered Plan. The numerical and monitored-RSS acceptance
+settings have been explicitly **frozen by the project lead on 2026-10-12**,
+but that scope-limited approval does **not** authorize a formal run,
+promote Evidence, select METHOD-0002, or change experiment approval status.
 
 ## Scope of the project-lead's budget decision
 
 On **2026-10-12**, the project lead explicitly approved **120 seconds TOTAL
 wall time across up to two complete formal EXP-0003 test repetitions**, not
-120 seconds per repetition. This approval concerns the budget interpretation
-only. Numerical thresholds, FFT/sparse settings, Plan freeze, code revision
-and formal execution remain **unapproved**.
+120 seconds per repetition. In a separate decision on **2026-10-12** the
+project lead also approved and froze the exact numerical gates,
+seed/FFT/pair policy and monitored-RSS memory policy documented in
+`Numerical_and_Memory_Freeze_Review.md`. **The complete Plan, code
+review and formal execution remain unapproved**.
 
-The remaining resource proposal is CPU-only, two threads maximum, and a
-2 GiB RLIMIT_AS virtual-address-space cap applied to each test process.
-RLIMIT_AS is not the same as peak RSS and may cause PyTorch imports to fail;
-any such failure must be preserved, never worked around silently.
-The shared deadline begins before fixture hashing and includes preparation
-between repetitions. Final artifact packaging is permitted after that
-deadline solely to preserve outcomes, not to execute additional tests.
+The frozen resources are CPU-only, two threads maximum,
+peak **process-tree RSS <= 2 GiB** including runner and test descendants,
+and a userspace `/proc` watchdog sampling at <=100ms intervals. If monitored
+RSS reaches **1536 MiB**, or RSS measurement fails during an active child,
+kill the test process group, preserve failure artifacts and do not retry.
+`RLIMIT_AS` is **not used**: a virtual-address limit is not peak RSS.
+The watchdog does **not** provide a strict kernel-enforced RSS limit;
+`/usr/bin/time -v` maximum RSS and cgroup memory events are also logged.
+If measured RSS exceeds 2 GiB, the attempt fails independently of the
+watchdog. The shared deadline begins before fixture hashing and includes
+preparation between repetitions. Final artifact packaging is permitted
+after that deadline solely to preserve outcomes, not additional tests.
 
 ## Prerequisites before ANY formal execution
 
-1. Project-lead approval of the entire EXP-0003 Plan including numerical
-   gates, seed, FFT convention, sparse policy, code/config/environment,
-   artifact requirements and separate authorization to execute.
+1. The numerical gates, seed/FFT/pair policy and monitored-RSS memory rule
+   are approved and frozen (2026-10-12). **Still required:** independent
+   validation/review of code, the exact frozen commit/environment, artifact
+   requirements, the complete Plan, and separate authorization to execute.
 2. Explicitly record `experiment_state: preregistered` and
    `approval_status: approved` plus nonblank `approval_ref` and
    `formal_execution_authorization_ref` in `Plan.md`. Never infer those
    approvals from the 120-second budget decision.
-3. The frozen `tools/fd_nig_config.json` must have `status: frozen`,
-   `approval_status: approved`, `tolerances.status: approved` and matching
-   nonblank approval and formal execution references.
+3. The numerical/fixture/memory parts of `tools/fd_nig_config.json`
+   already have `status: frozen` and `tolerances.status: approved`.
+   The formal `approval_status` remains `not_requested`. Only after
+   a separate full-Plan authorization may it become `approved` with
+   matching nonblank approval and execution references.
 4. Reserve a unique `RUN-EXP-0003-NNN` in append-only `Run_Log.md`
    with an exact heading such as `## RUN-EXP-0003-001 (reserved)` and
    independently review the exact committed branch, suite, and environment.
@@ -39,8 +51,9 @@ deadline solely to preserve outcomes, not to execute additional tests.
 5. Confirm the suite covers every Plan gate. The launcher's structural
    approval check does **not** replace scientific review.
 
-**At the current PR revision the launcher rejects execution** because the
-Plan and config remain unapproved.
+**At this PR revision the launcher rejects execution** because the
+Plan and formal execution approval fields remain unapproved/blank.
+The missing append-only reserved Run ID is an additional fail-closed gate.
 
 ## Proposed future launch (DO NOT RUN BEFORE FORMAL AUTHORIZATION)
 
@@ -67,8 +80,10 @@ tracked worktree. Running without `--execute` is refused.
 - The launcher sets **one 120-second monotonic deadline** for both complete
   test repetitions, including fixture serialization and between-run overhead.
   It never resets the deadline.
-- Each subprocess has a **2 GiB RLIMIT_AS** memory cap and runs on CPU with
-  `OMP_NUM_THREADS=2` and `MKL_NUM_THREADS=2`.
+- CPU-only child processes use `OMP_NUM_THREADS=2` and
+  `MKL_NUM_THREADS=2`. A 100ms process-tree RSS watchdog enforces a
+  **1536 MiB conservative early-stop**, with 2 GiB peak RSS acceptance
+  and **no RLIMIT_AS**. This policy is not a kernel hard-cap.
 - The complete test module is attempted at most twice. A failed, timed-out
   or incomplete first attempt stops execution, without retrying.
 - The second attempt uses the **remaining** total budget. Both attempts
@@ -91,8 +106,11 @@ The launcher exclusively creates the Run directory named by the reserved
 - `fixture.json` recording the deterministic synthetic fixture hash;
 - `summary.json` recording outcomes, test-ID agreement and shared elapsed time.
 
-Each attempt stores its independent exit status, elapsed time, timeout flag,
-test identifiers and JUnit result, stdout/stderr hash and resource log.
+Each attempt stores its independent exit status, elapsed time, timeout
+flag, **RSS-watchdog peak, early-stop status, sampling errors**, GNU time
+peak RSS, cgroup memory event snapshots, test identifiers, per-test
+JUnit outcomes **including numerical record_property measurements**,
+stdout/stderr hash and resource log.
 Never overwrite a prior attempt, hide failures, alter thresholds post hoc,
 or promote these results to verified Evidence.
 
@@ -104,7 +122,9 @@ timestamps, environment, results, deviations and any incomplete attempts.
 
 - These files were changed **statically only**. The runner and revised
   test suite have not been executed or validated in the Cloud runtime.
-- Numerical tolerances and other Plan settings still require review and
-  formal approval, independently of the approved 120-second budget.
+- The numerical tolerance/FFT/sparse and RSS settings are now frozen under
+  the separate project-lead approval. Their implementation in pytest and
+  the watchdog still requires independent static/runtime review;
+  **formal Plan approval and execution remain independently blocked**.
 - No Wiki projection is needed: these are administrative execution
   controls, not new human-readable scientific findings.
