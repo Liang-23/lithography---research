@@ -45,9 +45,14 @@ condition, stress case, or gradient test.
   q=(k-l) mod (16,16). Candidate sparse policy: first 256
   lexicographic base pairs and unique swapped partners, preserving the
   base prefix. Do not compare sparse and dense outputs if pairs differ.
-- Precision: complex128 required primary 16x16 acceptance evaluation;
-  complex64 required secondary diagnostic/acceptance evaluation on
-  prescribed small or selected fixtures. Record both dtypes explicitly.
+- Precision: complex128 is required for the primary 16x16 dense
+  aggregation, symmetry, inverse and gradient gates. complex64 is
+  required for a separate 16x16 pair-product, aggregation, symmetry and
+  inverse numerical check using the same fixture and declared tolerances;
+  other small-grid and stress/gradient gates use the explicitly specified
+  precision in each test. This is a numerical diagnostic of float32
+  behavior, not a scientific prediction-accuracy claim. Record both
+  dtypes and each required gate outcome explicitly.
 - Routing: exact integer agreement for every enumerated pair; correct
   counts including empty/multiple contributing bins.
 - Pair product: compare C*M(k)*conj(M(l)) against independently expanded
@@ -119,9 +124,11 @@ requires static runner changes and independent review before execution.
 
 1. The current pytest module does not yet apply the config tolerances
    consistently: multiple numeric tolerances remain hardcoded, and
-   float32 is not exercised against every proposed precision-specific
-   gate. Wire the approved acceptance contract and report per-gate
-   numerical measurements, not only test booleans.
+   float32 is not exercised against every required 16x16
+   precision-specific gate. Wire the approved acceptance contract and
+   report per-gate numerical measurements, not only test booleans.
+   The test's sparse-pair selection must index coefficients with the
+   exact same selected pair indices after swapped-pair closure.
 2. The finite-difference test checks the real parameter perturbation
    only. Add a chosen nondegenerate imaginary-parameter perturbation
    and explicit active/unused gradient controls.
