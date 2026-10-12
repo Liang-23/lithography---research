@@ -6,25 +6,22 @@ import torch
 
 def select_sparse_pairs(pairs: torch.Tensor, limit: int,
                         include_swapped: bool = True) -> torch.Tensor:
-    """Select a deterministic prefix while optionally closing every pair swap."""
+    """Select the first ``limit`` pairs, then append unique swapped partners."""
     if limit < 0:
         raise ValueError("limit must be non-negative")
     index = {tuple(row.tolist()): i for i, row in enumerate(pairs)}
-    selected = []
-    used = set()
-    for i, row in enumerate(pairs.tolist()):
-        if i in used:
-            continue
-        swap = (row[2], row[3], row[0], row[1])
-        group = [i]
-        if include_swapped and swap != tuple(row):
+    selected = list(range(min(limit, len(pairs))))
+    used = set(selected)
+    if include_swapped:
+        for i in list(selected):
+            row = pairs[i].tolist()
+            swap = (row[2], row[3], row[0], row[1])
             if swap not in index:
                 raise ValueError("pair list is missing a swapped pair")
-            group.append(index[swap])
-        if len(selected) + len(group) > limit:
-            break
-        selected.extend(group)
-        used.update(group)
+            partner = index[swap]
+            if partner not in used:
+                selected.append(partner)
+                used.add(partner)
     return pairs[torch.tensor(selected, dtype=torch.long, device=pairs.device)]
 
 

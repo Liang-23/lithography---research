@@ -1,10 +1,13 @@
 import json, os, sys, time, resource
+from pathlib import Path
 import torch
-sys.path.insert(0, '/workspace/lithography---research-fd-nig')
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
 from tools.fd_nig_reference import make_fixture, exhaustive_aggregate, pair_products as ref_products
 from tools.fd_nig_aggregation import aggregate, route_pairs, absolute_scales
 
-SEED=20261011
+CONFIG = json.loads((ROOT / 'tools' / 'fd_nig_config.json').read_text())
+SEED=CONFIG['seed']
 out=[]
 for n in (4,8):
   base=make_fixture(seed=SEED,height=n,width=n)
@@ -25,7 +28,8 @@ for n in (4,8):
     zero_safe=abs_err-bound
     flat=abs_err.flatten(); sf=scales.flatten()
     nz=sf>0
-    cancel_idx=torch.argmin(torch.where(nz,sf,torch.full_like(sf,float('inf'))))
+    cancellation_ratio = torch.where(nz, abs_err.flatten() / sf, torch.full_like(sf, float('inf')))
+    cancel_idx=torch.argmin(cancellation_ratio)
     empty_count=int((sf==0).sum())
-    out.append(dict(grid=n,dtype=str(dtype),max_abs=float(abs_err.max()),max_hi_abs=float(hi_err.max()),max_zero_safe_excess=float(zero_safe.max()),max_scale=float(scales.max()),cancellation_bin=int(cancel_idx),cancellation_error=float(abs_err.flatten()[cancel_idx]),cancellation_scale=float(sf.flatten()[cancel_idx]),empty_bins=empty_count,reference_seconds=tref,candidate_seconds=tcand,high_precision_reference_seconds=tref_hi,repeatable=bool(torch.equal(cand,cand2))))
+    out.append(dict(grid=n,dtype=str(dtype),max_abs=float(abs_err.max()),max_hi_abs=float(hi_err.max()),max_zero_safe_excess=float(zero_safe.max()),max_scale=float(scales.max()),cancellation_bin=int(cancel_idx),cancellation_error=float(abs_err.flatten()[cancel_idx]),cancellation_scale=float(sf.flatten()[cancel_idx]),cancellation_ratio=float(cancellation_ratio[cancel_idx]),empty_bins=empty_count,reference_seconds=tref,candidate_seconds=tcand,high_precision_reference_seconds=tref_hi,repeatable=bool(torch.equal(cand,cand2))))
 print(json.dumps({'seed':SEED,'results':out,'peak_rss_kb':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss},indent=2))

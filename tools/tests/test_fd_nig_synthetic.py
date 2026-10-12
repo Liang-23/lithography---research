@@ -143,6 +143,7 @@ def test_sparse_selection_is_deterministic_and_swap_closed():
     selected_again = select_sparse_pairs(fixture.pairs, 256, include_swapped=True)
     assert torch.equal(selected, selected_again)
     pairs = {tuple(row.tolist()) for row in selected}
+    assert torch.equal(selected[:256], fixture.pairs[:256])
     assert all((row[2], row[3], row[0], row[1]) in pairs for row in pairs)
 
 
@@ -163,3 +164,7 @@ def test_proposal_settings_are_read_without_approval():
     assert config["status"] == "proposal"
     assert config["approval_status"] == "not_requested"
     assert config["compute_budget"]["max_repetitions"] == 2
+    assert config["grid"] == {"height": 16, "width": 16, "circular": True}
+    assert config["fft"]["order"] == "native-unshifted"
+    assert config["pair_policy"]["sparse_count"] == 256
+    assert config["tolerances"]["status"] == "proposal"
