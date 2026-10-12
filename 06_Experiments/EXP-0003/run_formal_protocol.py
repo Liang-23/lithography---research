@@ -218,17 +218,20 @@ def execute_attempt(run_dir: Path, index: int, python: Path,
     peak_rss_bytes = 0
     rss_stop_bytes = 1536 * 1024 ** 2
     rss_limit_bytes = 2 * 1024 ** 3
-    period_seconds = 0.1
+    # Aim below the frozen 100 ms maximum to leave sampling overhead.
+    period_seconds = 0.05
     record["cgroup_memory_events_before"] = cgroup_value("/sys/fs/cgroup/memory.events")
 
     with stdout_path.open("x") as out, stderr_path.open("x") as err:
         if remaining > 0:
+            process = None
             try:
                 # RLIMIT_AS is deliberately absent: virtual memory is not RSS.
                 process = subprocess.Popen(
                     command, cwd=ROOT, env=env, stdout=out, stderr=err,
                     start_new_session=True,
                 )
+                last_sample = None
                 while True:
                     if process.poll() is not None:
                         return_code = process.returncode
@@ -240,7 +243,12 @@ def execute_attempt(run_dir: Path, index: int, python: Path,
                         return_code = process.returncode
                         break
                     try:
+                        sampled_at = time.monotonic()
+                        if (last_sample is not None
+                                and sampled_at - last_sample > 0.1):
+                            raise RuntimeError("RSS sampling interval exceeded 100 ms")
                         sampled = process_tree_rss_bytes(process.pid)
+                        last_sample = sampled_at
                         peak_rss_bytes = max(peak_rss_bytes, sampled)
                     except (OSError, ValueError, RuntimeError) as exc:
                         if process.poll() is None:
@@ -263,6 +271,9 @@ def execute_attempt(run_dir: Path, index: int, python: Path,
             except (OSError, ValueError, RuntimeError) as exc:
                 launch_error = repr(exc)
                 err.write("Unable to launch/monitor formal attempt: " + launch_error + "\n")
+                if process is not None and process.poll() is None:
+                    group_kill(process)
+                    return_code = process.returncode
         else:
             err.write("Total 120-second deadline exhausted before this attempt.\n")
 
