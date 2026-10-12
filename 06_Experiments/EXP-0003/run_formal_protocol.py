@@ -15,7 +15,6 @@ import json
 import os
 from pathlib import Path
 import re
-import resource
 import signal
 import subprocess
 import sys
@@ -65,6 +64,11 @@ def require_approval(config: dict, plan_text: str) -> None:
         raise RuntimeError("configuration is not approved/frozen")
     if config.get("tolerances", {}).get("status") != "approved":
         raise RuntimeError("numerical tolerances have not been approved")
+    if (plan_field(plan_text, "numerical_memory_freeze_status") != "approved"
+            or config.get("numerical_memory_freeze_status") != "approved"
+            or config.get("numerical_memory_freeze_ref") !=
+               plan_field(plan_text, "numerical_memory_freeze_ref")):
+        raise RuntimeError("numerical and memory freeze approval is missing or mismatched")
     for key in ("plan_approval_ref", "formal_execution_authorization_ref"):
         value = config.get(key)
         if not isinstance(value, str) or not value.strip():
@@ -77,13 +81,18 @@ def require_approval(config: dict, plan_text: str) -> None:
             or budget.get("wall_seconds") != 120
             or budget.get("wall_scope") != "both-repetitions-total"
             or budget.get("max_repetitions") != 2
-            or budget.get("memory_gb") != 2):
+            or budget.get("memory_gb") != 2
+            or budget.get("memory_metric") != "peak-process-tree-rss"
+            or budget.get("watchdog_stop_mib") != 1536
+            or budget.get("watchdog_sample_ms") != 100
+            or budget.get("enforcement") != "userspace-proc-rss-watchdog"
+            or budget.get("kernel_memory_limit_enforced") is not False):
         raise RuntimeError("unreviewed or inconsistent resource budget")
     if (config.get("experiment") != "EXP-0003"
             or config.get("method") != "METHOD-0002"
             or config.get("seed") != 20261011
             or config.get("grid") != {"height": 16, "width": 16, "circular": True}
-            or config.get("fft") != {"order": "native-unshifted", "normalization": "torch-default"}
+            or config.get("fft") != {"order": "native-unshifted", "normalization": "backward"}
             or config.get("pair_policy") != {"reference": "all", "sparse_count": 256,
                                                "order": "lexicographic"}):
         raise RuntimeError("unreviewed changes to the synthetic contract")
@@ -108,9 +117,63 @@ def fixture_digest(config: dict) -> str:
     return hashlib.sha256(serial.getvalue()).hexdigest()
 
 
-def limits() -> None:
-    cap = 2 * 1024 ** 3
-    resource.setrlimit(resource.RLIMIT_AS, (cap, cap))
+def proc_rss_bytes(pid: int) -> int:
+    """Linux /proc VmRSS in bytes; missing/unreadable data fail closed."""
+    text = Path(f"/proc/{pid}/status").read_text(encoding="utf-8")
+    for line in text.splitlines():
+        if line.startswith("VmRSS:"):
+            fields = line.split()
+            if len(fields) != 3 or fields[2] != "kB":
+                raise RuntimeError(f"unreadable RSS units for pid={pid}")
+            return int(fields[1]) * 1024
+    raise RuntimeError(f"VmRSS unavailable for pid={pid}")
+
+
+def proc_children(pid: int) -> list[int]:
+    contents = Path(f"/proc/{pid}/task/{pid}/children").read_text(encoding="utf-8")
+    return [int(part) for part in contents.split()]
+
+
+def process_tree_rss_bytes(child_pid: int) -> int:
+    """Conservatively sum parent + live test descendants, counting shared RSS."""
+    total = proc_rss_bytes(os.getpid())
+    visited: set[int] = set()
+    pending = [child_pid]
+    while pending:
+        pid = pending.pop()
+        if pid in visited:
+            continue
+        visited.add(pid)
+        try:
+            # Enumerate children before obtaining VmRSS to reduce missed forks.
+            pending.extend(proc_children(pid))
+            total += proc_rss_bytes(pid)
+        except FileNotFoundError:
+            # A process exiting during measurement is harmless; the
+            # /usr/bin/time -v peak remains a secondary post-run check.
+            continue
+    if child_pid not in visited or len(visited) <= 1:
+        # Parent RSS has still been checked even if no descendants exist.
+        return total
+    return total
+
+
+def group_kill(process: subprocess.Popen) -> None:
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    process.wait()
+
+
+def time_max_rss_kib(stderr_path: Path) -> int | None:
+    for line in stderr_path.read_text(encoding="utf-8", errors="replace").splitlines():
+        if "Maximum resident set size (kbytes)" in line:
+            try:
+                return int(line.rsplit(":", 1)[1].strip())
+            except (ValueError, IndexError):
+                return None
+    return None
 
 
 def cgroup_value(path: str) -> str | None:
@@ -282,7 +345,12 @@ def main() -> int:
         )},
         "budget_seconds_total": 120,
         "budget_scope": "both-complete-repetitions-total",
-        "memory_limit_bytes_per_child": 2 * 1024 ** 3,
+        "memory_budget_metric": "peak-process-tree-rss",
+        "memory_limit_bytes": 2 * 1024 ** 3,
+        "rss_early_stop_bytes": 1536 * 1024 ** 2,
+        "rss_sample_period_seconds": 0.1,
+        "memory_enforcement": "userspace-watchdog-non-kernel-hard",
+        "cgroup_memory_events_at_start": cgroup_value("/sys/fs/cgroup/memory.events"),
         "plan_approval_ref": config["plan_approval_ref"],
         "formal_execution_authorization_ref": config["formal_execution_authorization_ref"],
     }
