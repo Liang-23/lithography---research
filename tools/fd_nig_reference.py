@@ -17,7 +17,7 @@ Pair = Tuple[int, int, int, int]
 
 
 def load_config(path: str | Path) -> dict:
-    """Load proposal settings without changing or approving them."""
+    """Read declared experiment-local settings without authorizing execution."""
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
