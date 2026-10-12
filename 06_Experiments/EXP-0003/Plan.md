@@ -168,14 +168,18 @@ authorized.
 
 ## Compute budget and artifacts (proposal)
 
-Budget: **project-lead approved 2026-10-12 for budget interpretation only**:
-CPU-only, one process per repetition, **120 seconds TOTAL wall time across both
-complete test-suite repetitions**, not 120 seconds each, with a 2 GiB per-process
-virtual-address-space cap and at most two repetitions. The shared deadline must
-be enforced across repetitions and log preparation between them; timeout or
-failure is preserved, never retried by resetting the budget. This limited
-budget decision does **not** approve or freeze thresholds, settings, the Plan,
-or formal execution. No GPU, network data, training,
+The project lead **approved on 2026-10-12 only** a **120-second TOTAL
+wall-time budget across both complete repetitions**, not 120 seconds each.
+The shared execution deadline must not be reset between repetitions, and
+timeout/failure must be preserved. This approval does **not** freeze thresholds,
+seed, FFT/pair settings, the Plan, or formal execution.
+
+Other resource settings remain proposals: CPU-only, one test process at a time,
+at most two repetitions, and a 2 GiB peak-memory budget. The launcher currently
+proposes an additional 2 GiB Linux RLIMIT_AS *virtual address space* cap as a
+conservative fail-closed implementation choice. RLIMIT_AS is not the same as
+the proposed peak-memory metric; its effect on PyTorch must be reviewed before
+final approval. No GPU, network data, training,
 or external simulator is required. Expected artifacts are a JSON test report,
 environment/version capture, fixture hash, and (if approved) a small gradient
 summary. No artifact may be described as scientific validation.
