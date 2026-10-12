@@ -458,9 +458,17 @@ def main() -> int:
         len(records) == 2
         and records[0].get("test_ids") == records[1].get("test_ids")
     )
+    overall_peak_rss_bytes = max(
+        (int(item.get("watchdog_peak_process_tree_rss_bytes", 0))
+         for item in records), default=0,
+    )
     summary = {
         "experiment": "EXP-0003",
         "same_test_ids_across_repetitions": same_test_ids,
+        "overall_observed_peak_process_tree_rss_bytes": overall_peak_rss_bytes,
+        "rss_acceptance_limit_bytes": 2 * 1024 ** 3,
+        "rss_early_stop_bytes": 1536 * 1024 ** 2,
+        "cgroup_memory_events_at_end": cgroup_value("/sys/fs/cgroup/memory.events"),
         "run_id": run_id,
         "attempts": records,
         "total_elapsed_seconds": time.monotonic() - start,
