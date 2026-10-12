@@ -98,6 +98,56 @@ def require_approval(config: dict, plan_text: str) -> None:
         raise RuntimeError("unreviewed changes to the synthetic contract")
 
 
+
+def require_approved_revision(record_path: Path, config: dict, revision: str,
+                              branch: str, run_id: str) -> dict:
+    """Match HEAD against an independently approved record OUTSIDE this checkout.
+
+    JSON fields are cross-checked against existing Plan/config approvals.
+    This validates recorded identity, not the human approval's authenticity.
+    """
+    if not record_path.is_absolute():
+        raise RuntimeError("approved revision record must use an absolute path")
+    path = record_path.resolve(strict=True)
+    repo_root = ROOT.resolve()
+    if path == repo_root or repo_root in path.parents:
+        raise RuntimeError("approved revision record must be outside the Git checkout")
+    if not path.is_file():
+        raise RuntimeError("approved revision record is not a regular file")
+    record = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(record, dict):
+        raise RuntimeError("approved revision record must be a JSON object")
+
+    expected = {
+        "schema_version": "1.0",
+        "experiment": "EXP-0003",
+        "run_id": run_id,
+        "approved_branch": branch,
+        "plan_approval_ref": config["plan_approval_ref"],
+        "formal_execution_authorization_ref":
+            config["formal_execution_authorization_ref"],
+    }
+    for field, value in expected.items():
+        if not isinstance(record.get(field), str) or record[field] != value:
+            raise RuntimeError(f"approved revision record mismatch: {field}")
+    approved_sha = record.get("approved_commit_sha")
+    if not isinstance(approved_sha, str) or not re.fullmatch(r"[0-9a-f]{40}", approved_sha):
+        raise RuntimeError("approved revision record requires a full 40-digit commit SHA")
+    if approved_sha != revision:
+        raise RuntimeError(
+            f"unapproved Git revision: HEAD={revision}, approved={approved_sha}"
+        )
+    approval_ref = record.get("revision_approval_ref")
+    if not isinstance(approval_ref, str) or not approval_ref.strip():
+        raise RuntimeError("missing independent revision approval reference")
+    return {
+        "record_path": str(path),
+        "record_sha256": digest(path),
+        "approved_commit_sha": approved_sha,
+        "revision_approval_ref": approval_ref,
+    }
+
+
 def fixture_digest(config: dict) -> str:
     # Hash actual deterministic fixture tensors, with no NumPy dependency.
     # Include dtype, shape, field names, and serialized tensor bytes.
@@ -353,6 +403,8 @@ def main() -> int:
                         help="Must be accompanied by an approved Plan/config and authorization refs.")
     parser.add_argument("--run-id", required=True,
                         help="Approved immutable RUN-EXP-0003-NNN identifier; reserve it in Run_Log first.")
+    parser.add_argument("--approved-revision-record", type=Path, required=True,
+                        help="Independently approved JSON record outside the Git checkout, with exact commit SHA.")
     parser.add_argument("--python", type=Path, default=DEFAULT_PYTHON)
     parser.add_argument("--output-root", type=Path,
                         default=ROOT.parent / "fd-nig-exp0003-results")
@@ -377,6 +429,9 @@ def main() -> int:
     branch = git("branch", "--show-current")
     if branch != "task/fd-nig-verification":
         raise RuntimeError(f"unexpected branch: {branch}")
+    revision_approval = require_approved_revision(
+        args.approved_revision_record, config, revision, branch, args.run_id,
+    )
     log_path = EXPERIMENT / "Run_Log.md"
     if not log_path.is_file():
         raise RuntimeError("no append-only Run_Log.md reservation exists")
@@ -402,6 +457,7 @@ def main() -> int:
         "created_utc": utc_now(),
         "git_commit": revision,
         "branch": branch,
+        "approved_revision_record": revision_approval,
         "python": str(args.python),
         "python_executable": sys.executable,
         "python_version": sys.version,
