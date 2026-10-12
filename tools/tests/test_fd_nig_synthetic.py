@@ -159,12 +159,21 @@ def test_eight_by_eight_exhaustive_output_and_gradient_agreement():
     assert candidate_grad.abs().amax() > 0
 
 
-def test_proposal_settings_are_read_without_approval():
+def test_configured_synthetic_contract_and_budget_shape():
+    # Approval is a separate preflight gate in run_formal_protocol.py.
+    # This numerical test must remain valid after the Plan is approved/frozen.
     config = load_config("tools/fd_nig_config.json")
-    assert config["status"] == "proposal"
-    assert config["approval_status"] == "not_requested"
-    assert config["compute_budget"]["max_repetitions"] == 2
+    assert config["experiment"] == "EXP-0003"
+    assert config["method"] == "METHOD-0002"
+    assert config["seed"] == 20261011
     assert config["grid"] == {"height": 16, "width": 16, "circular": True}
-    assert config["fft"]["order"] == "native-unshifted"
-    assert config["pair_policy"]["sparse_count"] == 256
-    assert config["tolerances"]["status"] == "proposal"
+    assert config["fft"] == {"order": "native-unshifted", "normalization": "torch-default"}
+    assert config["pair_policy"] == {"reference": "all", "sparse_count": 256,
+                                      "order": "lexicographic"}
+    assert config["compute_budget"]["max_repetitions"] == 2
+    assert config["compute_budget"]["wall_seconds"] == 120
+    assert config["compute_budget"]["wall_scope"] == "both-repetitions-total"
+    assert config["compute_budget"]["memory_gb"] == 2
+    for dtype in ("float32", "float64"):
+        assert config["tolerances"][dtype]["atol"] > 0
+        assert config["tolerances"][dtype]["rtol"] > 0
