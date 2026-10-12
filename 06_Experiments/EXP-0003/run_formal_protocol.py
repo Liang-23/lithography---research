@@ -21,7 +21,6 @@ import subprocess
 import sys
 import time
 from datetime import datetime, timezone
-from uuid import uuid4
 import xml.etree.ElementTree as ET
 
 
@@ -207,6 +206,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--execute", action="store_true",
                         help="Must be accompanied by an approved Plan/config and authorization refs.")
+    parser.add_argument("--run-id", required=True,
+                        help="Approved immutable RUN-EXP-0003-NNN identifier; reserve it in Run_Log first.")
     parser.add_argument("--python", type=Path, default=DEFAULT_PYTHON)
     parser.add_argument("--output-root", type=Path,
                         default=ROOT.parent / "fd-nig-exp0003-results")
@@ -214,11 +215,15 @@ def main() -> int:
 
     if not args.execute:
         parser.error("execution is disabled by default; use --execute only after formal authorization")
+    if not re.fullmatch(r"RUN-EXP-0003-[0-9]{3}", args.run_id):
+        parser.error("--run-id must be a reserved RUN-EXP-0003-NNN identifier")
     config = json.loads(CONFIG.read_text(encoding="utf-8"))
     plan_text = PLAN.read_text(encoding="utf-8")
     require_approval(config, plan_text)
     if not args.python.is_file():
         raise RuntimeError(f"missing approved Python environment: {args.python}")
+    if Path(sys.executable).resolve() != args.python.resolve():
+        raise RuntimeError("invoke this runner with the same approved Python interpreter")
     if not Path("/usr/bin/time").is_file():
         raise RuntimeError("required /usr/bin/time is unavailable")
     if git("status", "--porcelain", "--untracked-files=no"):
@@ -232,7 +237,7 @@ def main() -> int:
     if output_root == ROOT or ROOT in output_root.parents:
         raise RuntimeError("run artifacts must be stored outside the Git worktree")
 
-    run_id = f"{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}-{revision[:8]}-{uuid4().hex[:10]}"
+    run_id = args.run_id
     output_root.mkdir(parents=True, exist_ok=True)
     run_dir = output_root / run_id
     run_dir.mkdir(mode=0o700, exist_ok=False)
@@ -244,6 +249,7 @@ def main() -> int:
         "git_commit": revision,
         "branch": branch,
         "python": str(args.python),
+        "python_executable": sys.executable,
         "python_version": sys.version,
         "torch_version": importlib.metadata.version("torch"),
         "pytest_version": importlib.metadata.version("pytest"),
