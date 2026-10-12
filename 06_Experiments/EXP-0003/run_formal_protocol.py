@@ -1,0 +1,572 @@
+#!/usr/bin/env python3
+"""Guarded, proposal-only EXP-0003 launcher. Do not run before full approvals.
+
+Two complete pytest repetitions share ONE 120-second monotonic deadline.
+Every attempt receives a separate, never-overwritten artifact directory.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import importlib.metadata
+import io
+import json
+import os
+from pathlib import Path
+import re
+import signal
+import subprocess
+import sys
+import time
+from datetime import datetime, timezone
+import xml.etree.ElementTree as ET
+
+
+ROOT = Path(__file__).resolve().parents[2]
+EXPERIMENT = ROOT / "06_Experiments" / "EXP-0003"
+PLAN = EXPERIMENT / "Plan.md"
+CONFIG = ROOT / "tools" / "fd_nig_config.json"
+TEST_PATH = "tools/tests/test_fd_nig_synthetic.py"
+DEFAULT_PYTHON = Path("/workspace/fd-nig-venv/bin/python")
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def digest(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def plan_field(contents: str, name: str) -> str:
+    match = re.search(r"^" + re.escape(name) + r":[ \t]*(.*)$", contents, re.M)
+    return (match.group(1).strip("\"'") if match else "").strip()
+
+
+def git(*args: str) -> str:
+    return subprocess.check_output(["git", "-C", str(ROOT), *args], text=True).strip()
+
+
+def require_approval(config: dict, plan_text: str) -> None:
+    # Reading an unapproved Plan MUST make this launcher refuse to execute.
+    if plan_field(plan_text, "id") != "EXP-0003":
+        raise RuntimeError("wrong experiment plan")
+    if plan_field(plan_text, "experiment_state") != "preregistered":
+        raise RuntimeError("experiment is not preregistered")
+    if plan_field(plan_text, "approval_status") != "approved":
+        raise RuntimeError("experiment Plan is not approved")
+    if config.get("status") != "frozen" or config.get("approval_status") != "approved":
+        raise RuntimeError("configuration is not approved/frozen")
+    if config.get("tolerances", {}).get("status") != "approved":
+        raise RuntimeError("numerical tolerances have not been approved")
+    if (plan_field(plan_text, "numerical_memory_freeze_status") != "approved"
+            or config.get("numerical_memory_freeze_status") != "approved"
+            or config.get("numerical_memory_freeze_ref") !=
+               plan_field(plan_text, "numerical_memory_freeze_ref")):
+        raise RuntimeError("numerical and memory freeze approval is missing or mismatched")
+    for key in ("plan_approval_ref", "formal_execution_authorization_ref"):
+        value = config.get(key)
+        if not isinstance(value, str) or not value.strip():
+            raise RuntimeError(f"missing explicit {key}")
+        if value != plan_field(plan_text, "approval_ref" if key == "plan_approval_ref"
+                               else "formal_execution_authorization_ref"):
+            raise RuntimeError(f"mismatched approval reference: {key}")
+    budget = config.get("compute_budget", {})
+    if (budget.get("device") != "cpu"
+            or budget.get("wall_seconds") != 120
+            or budget.get("wall_scope") != "both-repetitions-total"
+            or budget.get("max_repetitions") != 2
+            or budget.get("memory_gb") != 2
+            or budget.get("memory_metric") != "peak-process-tree-rss"
+            or budget.get("watchdog_stop_mib") != 1536
+            or budget.get("watchdog_sample_ms") != 100
+            or budget.get("enforcement") != "userspace-proc-rss-watchdog"
+            or budget.get("kernel_memory_limit_enforced") is not False):
+        raise RuntimeError("unreviewed or inconsistent resource budget")
+    if (config.get("experiment") != "EXP-0003"
+            or config.get("method") != "METHOD-0002"
+            or config.get("seed") != 20261011
+            or config.get("grid") != {"height": 16, "width": 16, "circular": True}
+            or config.get("fft") != {"order": "native-unshifted", "normalization": "backward"}
+            or config.get("pair_policy") != {"reference": "all", "sparse_count": 256,
+                                               "order": "lexicographic"}):
+        raise RuntimeError("unreviewed changes to the synthetic contract")
+
+
+
+def require_approved_revision(record_path: Path, config: dict, revision: str,
+                              branch: str, run_id: str) -> dict:
+    """Match HEAD against an independently approved record OUTSIDE this checkout.
+
+    JSON fields are cross-checked against existing Plan/config approvals.
+    This validates recorded identity, not the human approval's authenticity.
+    """
+    if not record_path.is_absolute():
+        raise RuntimeError("approved revision record must use an absolute path")
+    path = record_path.resolve(strict=True)
+    repo_root = ROOT.resolve()
+    if path == repo_root or repo_root in path.parents:
+        raise RuntimeError("approved revision record must be outside the Git checkout")
+    if not path.is_file():
+        raise RuntimeError("approved revision record is not a regular file")
+    record = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(record, dict):
+        raise RuntimeError("approved revision record must be a JSON object")
+
+    expected = {
+        "schema_version": "1.0",
+        "experiment": "EXP-0003",
+        "run_id": run_id,
+        "approved_branch": branch,
+        "plan_approval_ref": config["plan_approval_ref"],
+        "formal_execution_authorization_ref":
+            config["formal_execution_authorization_ref"],
+    }
+    for field, value in expected.items():
+        if not isinstance(record.get(field), str) or record[field] != value:
+            raise RuntimeError(f"approved revision record mismatch: {field}")
+    approved_sha = record.get("approved_commit_sha")
+    if not isinstance(approved_sha, str) or not re.fullmatch(r"[0-9a-f]{40}", approved_sha):
+        raise RuntimeError("approved revision record requires a full 40-digit commit SHA")
+    if approved_sha != revision:
+        raise RuntimeError(
+            f"unapproved Git revision: HEAD={revision}, approved={approved_sha}"
+        )
+    approval_ref = record.get("revision_approval_ref")
+    if not isinstance(approval_ref, str) or not approval_ref.strip():
+        raise RuntimeError("missing independent revision approval reference")
+    return {
+        "record_path": str(path),
+        "record_sha256": digest(path),
+        "approved_commit_sha": approved_sha,
+        "revision_approval_ref": approval_ref,
+    }
+
+
+def fixture_digest(config: dict) -> str:
+    # Hash actual deterministic fixture tensors, with no NumPy dependency.
+    # Include dtype, shape, field names, and serialized tensor bytes.
+    sys.path.insert(0, str(ROOT))
+    import torch
+    from tools.fd_nig_reference import make_fixture
+
+    fixture = make_fixture(
+        seed=config["seed"], height=config["grid"]["height"],
+        width=config["grid"]["width"],
+    )
+    serial = io.BytesIO()
+    torch.save({key: getattr(fixture, key) for key in (
+        "mask", "spectrum", "pairs", "coefficients",
+        "hermitian_coefficients", "target",
+    )}, serial)
+    return hashlib.sha256(serial.getvalue()).hexdigest()
+
+
+def proc_rss_bytes(pid: int) -> int:
+    """Linux /proc VmRSS in bytes; missing/unreadable data fail closed."""
+    text = Path(f"/proc/{pid}/status").read_text(encoding="utf-8")
+    for line in text.splitlines():
+        if line.startswith("VmRSS:"):
+            fields = line.split()
+            if len(fields) != 3 or fields[2] != "kB":
+                raise RuntimeError(f"unreadable RSS units for pid={pid}")
+            return int(fields[1]) * 1024
+    raise RuntimeError(f"VmRSS unavailable for pid={pid}")
+
+
+def proc_children(pid: int) -> list[int]:
+    contents = Path(f"/proc/{pid}/task/{pid}/children").read_text(encoding="utf-8")
+    return [int(part) for part in contents.split()]
+
+
+def process_tree_rss_bytes(child_pid: int) -> int:
+    """Conservatively sum parent + live test descendants, counting shared RSS."""
+    total = proc_rss_bytes(os.getpid())
+    visited: set[int] = set()
+    pending = [child_pid]
+    while pending:
+        pid = pending.pop()
+        if pid in visited:
+            continue
+        visited.add(pid)
+        try:
+            # Enumerate children before obtaining VmRSS to reduce missed forks.
+            pending.extend(proc_children(pid))
+            total += proc_rss_bytes(pid)
+        except FileNotFoundError:
+            # A process exiting during measurement is harmless; the
+            # /usr/bin/time -v peak remains a secondary post-run check.
+            continue
+    if child_pid not in visited or len(visited) <= 1:
+        # Parent RSS has still been checked even if no descendants exist.
+        return total
+    return total
+
+
+def group_kill(process: subprocess.Popen) -> None:
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    process.wait()
+
+
+def time_max_rss_kib(stderr_path: Path) -> int | None:
+    for line in stderr_path.read_text(encoding="utf-8", errors="replace").splitlines():
+        if "Maximum resident set size (kbytes)" in line:
+            try:
+                return int(line.rsplit(":", 1)[1].strip())
+            except (ValueError, IndexError):
+                return None
+    return None
+
+
+def cgroup_value(path: str) -> str | None:
+    try:
+        return Path(path).read_text().strip()
+    except OSError:
+        return None
+
+
+def write_json_new(path: Path, value: object) -> None:
+    with path.open("x", encoding="utf-8") as output:
+        json.dump(value, output, indent=2, sort_keys=True)
+        output.write("\n")
+
+
+def execute_attempt(run_dir: Path, index: int, python: Path,
+                    deadline: float, env: dict) -> dict:
+    attempt_dir = run_dir / f"attempt-{index:02d}"
+    attempt_dir.mkdir(mode=0o700, exist_ok=False)
+    stdout_path = attempt_dir / "stdout.log"
+    stderr_path = attempt_dir / "stderr-and-resource.log"
+    junit_path = attempt_dir / "junit.xml"
+    command = ["/usr/bin/time", "-v", str(python), "-m", "pytest",
+               TEST_PATH, "-q", f"--junitxml={junit_path}"]
+    started = time.monotonic()
+    remaining = deadline - started
+    record = {
+        "attempt": index,
+        "start_utc": utc_now(),
+        "command": command,
+        "remaining_budget_seconds_at_start": remaining,
+        "environment": {k: env[k] for k in (
+            "OMP_NUM_THREADS", "MKL_NUM_THREADS", "PYTHONHASHSEED",
+            "CUDA_VISIBLE_DEVICES",
+        )},
+    }
+    timed_out = remaining <= 0
+    return_code = None
+    memory_early_stop = False
+    measurement_failure = None
+    launch_error = None
+    peak_rss_bytes = 0
+    rss_stop_bytes = 1536 * 1024 ** 2
+    rss_limit_bytes = 2 * 1024 ** 3
+    # Aim below the frozen 100 ms maximum to leave sampling overhead.
+    period_seconds = 0.05
+    record["cgroup_memory_events_before"] = cgroup_value("/sys/fs/cgroup/memory.events")
+
+    with stdout_path.open("x") as out, stderr_path.open("x") as err:
+        if remaining > 0 and time.monotonic() < deadline:
+            process = None
+            try:
+                # RLIMIT_AS is deliberately absent: virtual memory is not RSS.
+                process = subprocess.Popen(
+                    command, cwd=ROOT, env=env, stdout=out, stderr=err,
+                    start_new_session=True,
+                )
+                last_sample = None
+                while True:
+                    # Enforce the shared deadline before accepting a process exit.
+                    left = deadline - time.monotonic()
+                    if left <= 0:
+                        timed_out = True
+                        if process.poll() is None:
+                            group_kill(process)
+                        return_code = process.returncode
+                        break
+                    if process.poll() is not None:
+                        return_code = process.returncode
+                        break
+                    try:
+                        sampled_at = time.monotonic()
+                        if (last_sample is not None
+                                and sampled_at - last_sample > 0.1):
+                            raise RuntimeError("RSS sampling interval exceeded 100 ms")
+                        sampled = process_tree_rss_bytes(process.pid)
+                        last_sample = sampled_at
+                        peak_rss_bytes = max(peak_rss_bytes, sampled)
+                    except (OSError, ValueError, RuntimeError) as exc:
+                        if process.poll() is None:
+                            measurement_failure = repr(exc)
+                            group_kill(process)
+                            return_code = process.returncode
+                            break
+                        return_code = process.returncode
+                        break
+                    if sampled >= rss_stop_bytes:
+                        memory_early_stop = True
+                        group_kill(process)
+                        return_code = process.returncode
+                        break
+                    try:
+                        return_code = process.wait(timeout=min(period_seconds, left))
+                        break
+                    except subprocess.TimeoutExpired:
+                        continue
+            except (OSError, ValueError, RuntimeError) as exc:
+                launch_error = repr(exc)
+                err.write("Unable to launch/monitor formal attempt: " + launch_error + "\n")
+                if process is not None and process.poll() is None:
+                    group_kill(process)
+                    return_code = process.returncode
+        else:
+            err.write("Total 120-second deadline exhausted before this attempt.\n")
+        # Snapshot the end of execution before post-run artifact processing.
+        execution_finished_at = time.monotonic()
+
+    # Never accept a zero exit code observed beyond the shared 120 s deadline.
+    # A late return is conservatively treated as a timeout, not a PASS.
+    if execution_finished_at > deadline:
+        timed_out = True
+    record["execution_finished_within_deadline"] = (
+        not timed_out and execution_finished_at <= deadline
+    )
+    record["execution_elapsed_seconds_since_shared_start"] = (
+        execution_finished_at - (deadline - 120)
+    )
+    record["remaining_shared_budget_seconds_at_execution_finish"] = (
+        deadline - execution_finished_at
+    )
+    record["end_utc"] = utc_now()
+    record["elapsed_seconds"] = time.monotonic() - started
+    record["exit_code"] = return_code
+    record["timed_out"] = timed_out
+    record["memory_early_stop"] = memory_early_stop
+    record["memory_measurement_failure"] = measurement_failure
+    record["launch_error"] = launch_error
+    record["watchdog_peak_process_tree_rss_bytes"] = peak_rss_bytes
+    record["rss_early_stop_bytes"] = rss_stop_bytes
+    record["rss_acceptance_limit_bytes"] = rss_limit_bytes
+    record["cgroup_memory_events_after"] = cgroup_value("/sys/fs/cgroup/memory.events")
+    # GNU time is an independent process maximum, not a substitute for
+    # the monitored sum of runner+descendant RSS.
+    record["time_peak_rss_kib"] = time_max_rss_kib(stderr_path)
+    time_peak = record["time_peak_rss_kib"]
+    record["memory_accepted"] = (
+        not memory_early_stop and measurement_failure is None
+        and launch_error is None
+        and peak_rss_bytes < rss_stop_bytes
+        and (time_peak is not None and time_peak * 1024 <= rss_limit_bytes)
+    )
+    record["sha256"] = {
+        p.name: digest(p) for p in (stdout_path, stderr_path)
+    }
+    test_ids = []
+    test_results = []
+    xml_problem = None
+    if junit_path.is_file():
+        record["sha256"][junit_path.name] = digest(junit_path)
+        try:
+            xml = ET.parse(junit_path).getroot()
+            cases = list(xml.iter("testcase"))
+            for case in cases:
+                test_id = f'{case.get("classname", "")}.{case.get("name", "")}'
+                test_ids.append(test_id)
+                failure = case.find("failure")
+                error = case.find("error")
+                skipped = case.find("skipped")
+                status = ("failure" if failure is not None else
+                          "error" if error is not None else
+                          "skipped" if skipped is not None else "passed")
+                props = case.find("properties")
+                metrics = {
+                    prop.get("name"): prop.get("value")
+                    for prop in list(props) if prop.get("name")
+                } if props is not None else {}
+                test_results.append({"id": test_id, "status": status,
+                                     "duration_seconds": case.get("time"),
+                                     "measurements": metrics})
+            record["test_count"] = len(cases)
+            record["failures"] = sum(case.find("failure") is not None for case in cases)
+            record["errors"] = sum(case.find("error") is not None for case in cases)
+            record["skipped"] = sum(case.find("skipped") is not None for case in cases)
+        except ET.ParseError as exc:
+            xml_problem = str(exc)
+    else:
+        xml_problem = "JUnit XML was not produced"
+    record["junit_parse_error"] = xml_problem
+    record["test_ids"] = test_ids
+    record["test_results"] = test_results
+    record["passed"] = (
+        record["execution_finished_within_deadline"]
+        and record["memory_accepted"] and return_code == 0
+        and xml_problem is None
+        and len(test_ids) >= 8 and record["failures"] == 0
+        and record["errors"] == 0 and record["skipped"] == 0
+    )
+    write_json_new(attempt_dir / "status.json", record)
+    return record
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--execute", action="store_true",
+                        help="Must be accompanied by an approved Plan/config and authorization refs.")
+    parser.add_argument("--run-id", required=True,
+                        help="Approved immutable RUN-EXP-0003-NNN identifier; reserve it in Run_Log first.")
+    parser.add_argument("--approved-revision-record", type=Path, required=True,
+                        help="Independently approved JSON record outside the Git checkout, with exact commit SHA.")
+    parser.add_argument("--python", type=Path, default=DEFAULT_PYTHON)
+    parser.add_argument("--output-root", type=Path,
+                        default=ROOT.parent / "fd-nig-exp0003-results")
+    args = parser.parse_args()
+
+    if not args.execute:
+        parser.error("execution is disabled by default; use --execute only after formal authorization")
+    if not re.fullmatch(r"RUN-EXP-0003-[0-9]{3}", args.run_id):
+        parser.error("--run-id must be a reserved RUN-EXP-0003-NNN identifier")
+    config = json.loads(CONFIG.read_text(encoding="utf-8"))
+    plan_text = PLAN.read_text(encoding="utf-8")
+    require_approval(config, plan_text)
+    if not args.python.is_file():
+        raise RuntimeError(f"missing approved Python environment: {args.python}")
+    if Path(sys.executable).resolve() != args.python.resolve():
+        raise RuntimeError("invoke this runner with the same approved Python interpreter")
+    if not Path("/usr/bin/time").is_file():
+        raise RuntimeError("required /usr/bin/time is unavailable")
+    if git("status", "--porcelain", "--untracked-files=no"):
+        raise RuntimeError("tracked Git worktree has uncommitted changes")
+    revision = git("rev-parse", "HEAD")
+    branch = git("branch", "--show-current")
+    if branch != "task/fd-nig-verification":
+        raise RuntimeError(f"unexpected branch: {branch}")
+    revision_approval = require_approved_revision(
+        args.approved_revision_record, config, revision, branch, args.run_id,
+    )
+    log_path = EXPERIMENT / "Run_Log.md"
+    if not log_path.is_file():
+        raise RuntimeError("no append-only Run_Log.md reservation exists")
+    reserved = re.search(
+        r"(?m)^##[ 	]+" + re.escape(args.run_id) + r"[ 	]+\(reserved\)[ 	]*$",
+        log_path.read_text(encoding="utf-8"),
+    )
+    if not reserved:
+        raise RuntimeError("Run ID has not been explicitly reserved in Run_Log.md")
+
+    output_root = args.output_root.resolve()
+    if output_root == ROOT or ROOT in output_root.parents:
+        raise RuntimeError("run artifacts must be stored outside the Git worktree")
+
+    run_id = args.run_id
+    output_root.mkdir(parents=True, exist_ok=True)
+    run_dir = output_root / run_id
+    run_dir.mkdir(mode=0o700, exist_ok=False)
+
+    provenance = {
+        "experiment": "EXP-0003",
+        "formal_run_id": run_id,
+        "created_utc": utc_now(),
+        "git_commit": revision,
+        "branch": branch,
+        "approved_revision_record": revision_approval,
+        "python": str(args.python),
+        "python_executable": sys.executable,
+        "python_version": sys.version,
+        "torch_version": importlib.metadata.version("torch"),
+        "pytest_version": importlib.metadata.version("pytest"),
+        "cpu_quota_cgroup_v2": cgroup_value("/sys/fs/cgroup/cpu.max"),
+        "memory_limit_cgroup_v2": cgroup_value("/sys/fs/cgroup/memory.max"),
+        "input_sha256": {str(p.relative_to(ROOT)): digest(p) for p in (
+            PLAN, CONFIG, EXPERIMENT / "Formal_Execution_Protocol.md",
+            EXPERIMENT / "run_formal_protocol.py",
+            ROOT / "tools" / "fd_nig_reference.py",
+            ROOT / "tools" / "fd_nig_aggregation.py",
+            ROOT / TEST_PATH,
+        )},
+        "budget_seconds_total": 120,
+        "budget_scope": "both-complete-repetitions-total",
+        "memory_budget_metric": "peak-process-tree-rss",
+        "memory_limit_bytes": 2 * 1024 ** 3,
+        "rss_early_stop_bytes": 1536 * 1024 ** 2,
+        "rss_sample_period_seconds": 0.1,
+        "memory_enforcement": "userspace-watchdog-non-kernel-hard",
+        "cgroup_memory_events_at_start": cgroup_value("/sys/fs/cgroup/memory.events"),
+        "plan_approval_ref": config["plan_approval_ref"],
+        "formal_execution_authorization_ref": config["formal_execution_authorization_ref"],
+    }
+    write_json_new(run_dir / "provenance.json", provenance)
+    env = os.environ.copy()
+    env.update({
+        "OMP_NUM_THREADS": "2",
+        "MKL_NUM_THREADS": "2",
+        "PYTHONHASHSEED": str(config["seed"]),
+        "CUDA_VISIBLE_DEVICES": "",
+    })
+    # The deadline covers fixture serialization and the two repeated test suites.
+    start = time.monotonic()
+    deadline = start + 120
+    records = []
+    try:
+        fixture_hash = fixture_digest(config)
+        write_json_new(run_dir / "fixture.json", {
+            "fixture_sha256_torch_serialization": fixture_hash,
+            "seed": config["seed"],
+            "grid": config["grid"],
+        })
+        for index in (1, 2):
+            record = execute_attempt(run_dir, index, args.python, deadline, env)
+            records.append(record)
+            if not record["passed"]:
+                break
+
+    except Exception as exc:
+        records.append({"failed_in_runner": repr(exc), "at_utc": utc_now()})
+    same_test_ids = (
+        len(records) == 2
+        and records[0].get("test_ids") == records[1].get("test_ids")
+    )
+    overall_peak_rss_bytes = max(
+        (int(item.get("watchdog_peak_process_tree_rss_bytes", 0))
+         for item in records), default=0,
+    )
+    all_attempts_within_shared_deadline = (
+        len(records) == 2 and
+        all(item.get("execution_finished_within_deadline") is True for item in records)
+    )
+    summary = {
+        "experiment": "EXP-0003",
+        "same_test_ids_across_repetitions": same_test_ids,
+        "overall_observed_peak_process_tree_rss_bytes": overall_peak_rss_bytes,
+        "rss_acceptance_limit_bytes": 2 * 1024 ** 3,
+        "rss_early_stop_bytes": 1536 * 1024 ** 2,
+        "cgroup_memory_events_at_end": cgroup_value("/sys/fs/cgroup/memory.events"),
+        "run_id": run_id,
+        "attempts": records,
+        "total_elapsed_seconds": time.monotonic() - start,
+        "execution_elapsed_seconds_through_last_attempt": (
+            records[-1].get("execution_elapsed_seconds_since_shared_start")
+            if records else None
+        ),
+        "all_attempts_within_shared_deadline": all_attempts_within_shared_deadline,
+        "passed": (
+            len(records) == 2 and same_test_ids
+            and all_attempts_within_shared_deadline
+            and all(x.get("passed") for x in records)
+        ),
+        "completed_utc": utc_now(),
+    }
+    write_json_new(run_dir / "summary.json", summary)
+    print(json.dumps({"run_dir": str(run_dir), "passed": summary["passed"],
+                      "attempts": len(records), "elapsed": summary["total_elapsed_seconds"]}))
+    return 0 if summary["passed"] else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

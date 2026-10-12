@@ -1,0 +1,75 @@
+{
+  "status": "frozen",
+  "experiment": "EXP-0003",
+  "method": "METHOD-0002",
+  "seed": 20261011,
+  "grid": {
+    "height": 16,
+    "width": 16,
+    "circular": true
+  },
+  "fft": {
+    "order": "native-unshifted",
+    "normalization": "backward"
+  },
+  "pair_policy": {
+    "reference": "all",
+    "sparse_count": 256,
+    "order": "lexicographic"
+  },
+  "dtype": "float64",
+  "tolerances": {
+    "status": "approved",
+    "float32": {
+      "atol": 0.000001,
+      "rtol": 0.00001
+    },
+    "float64": {
+      "atol": 1e-12,
+      "rtol": 1e-12
+    },
+    "pair_products": "scale-aware-reference-term",
+    "aggregation": "zero-safe-absolute-contribution-scale",
+    "hermitian": {
+      "float64": 1e-10,
+      "float32": 0.00001
+    },
+    "self_conjugate_imag": {
+      "float64": 1e-10,
+      "float32": 0.000001
+    },
+    "inverse_imag": {
+      "float64": 1e-10,
+      "float32": 0.00001
+    },
+    "finite_difference": {
+      "step": 0.000001,
+      "atol": 0.00001,
+      "rtol": 0.0001
+    },
+    "grad_eight_by_eight": {
+      "atol": 1e-10,
+      "rtol": 1e-10
+    },
+    "gradient_active": "nonzero-real-and-imag-independent"
+  },
+  "compute_budget": {
+    "device": "cpu",
+    "max_repetitions": 2,
+    "wall_seconds": 120,
+    "memory_gb": 2,
+    "wall_scope": "both-repetitions-total",
+    "budget_decision_ref": "Project lead approval in ChatGPT conversation, 2026-10-12; budget only, not formal execution",
+    "memory_metric": "peak-process-tree-rss",
+    "watchdog_stop_mib": 1536,
+    "watchdog_sample_ms": 100,
+    "enforcement": "userspace-proc-rss-watchdog",
+    "kernel_memory_limit_enforced": false
+  },
+  "intensity_contract": "ifft2_real_direct; no_magnitude_square",
+  "approval_status": "not_requested",
+  "plan_approval_ref": null,
+  "formal_execution_authorization_ref": null,
+  "numerical_memory_freeze_status": "approved",
+  "numerical_memory_freeze_ref": "Project lead explicit approval in ChatGPT conversation, 2026-10-12; numerical criteria and monitored-RSS policy only"
+}

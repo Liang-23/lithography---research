@@ -1,0 +1,165 @@
+---
+schema_version: "1.0"
+id: EXP-0003-FREEZE-REVIEW
+type: experiment-local-review
+title: "EXP-0003 numerical and monitored-RSS settings: scope-limited approved freeze"
+lifecycle_status: draft
+authority_class: working
+authority_scope: pre-experiment-proposal-only
+created_by: ai
+content_origin: ai-assisted
+created_at: 2026-10-12
+updated_at: 2026-10-12
+owner: project-lead
+review_status: approved
+approved_by: project-lead
+approval_ref: "Explicit ChatGPT conversation approval, 2026-10-12; freeze numerical settings and monitored-RSS memory policy only"
+experiment_ids: [EXP-0003]
+method_ids: [METHOD-0002]
+exclude_from_synthesis: true
+---
+
+# Numerical gates and memory policy: approved scope-limited freeze
+
+**Approved and frozen by the project lead (2026-10-12), ONLY for
+experiment-local numerical acceptance settings and monitored-RSS memory
+policy. No formal Plan approval or permission to execute EXP-0003.**
+The project lead had separately approved the shared 120-second total
+wall-time budget across two repetitions. This additional explicit approval
+freezes the detailed numerical and memory choices below; remaining code
+implementation, static review and execution approval are independent gates.
+
+## Existing calibration: evidence boundary
+
+Pre_Experiment_Calibration.md preserves 4x4/8x8 CPU-only diagnostic values
+from commit 8965161, not a formal 16x16 execution. The maximum 8x8
+candidate/reference spectral differences were 2.27817331817e-13
+(complex128) and 4.57763671875e-05 (complex64). The diagnostic
+zero-safe excess was negative under the *proposed* bounds, and peak process
+RSS was about 235 MiB. These observations do not calibrate every 16x16
+condition, stress case, or gradient test.
+
+## Frozen numerical contract (scope-limited project-lead approval)
+
+- Grid: circular 16x16, unshifted DFT frequency order, torch.fft.fft2/ifft2
+  with norm="backward" (forward unnormalized, inverse divided by H*W).
+  Use seed 20261011. Fixed c=[1], deterministic synthetic binary/nonbinary
+  mask fixtures. No DATA-0001, training, or simulator calls.
+- All-pairs reference: 65,536 lexicographically ordered pairs;
+  q=(k-l) mod (16,16). Candidate sparse policy: first 256
+  lexicographic base pairs and unique swapped partners, preserving the
+  base prefix. Do not compare sparse and dense outputs if pairs differ.
+- Precision: complex128 is required for the primary 16x16 dense
+  aggregation, symmetry, inverse and gradient gates. complex64 is
+  required for a separate 16x16 pair-product, aggregation, symmetry and
+  inverse numerical check using the same fixture and declared tolerances;
+  other small-grid and stress/gradient gates use the explicitly specified
+  precision in each test. This is a numerical diagnostic of float32
+  behavior, not a scientific prediction-accuracy claim. Record both
+  dtypes and each required gate outcome explicitly.
+- Routing: exact integer agreement for every enumerated pair; correct
+  counts including empty/multiple contributing bins.
+- Pair product: compare C*M(k)*conj(M(l)) against independently expanded
+  real/imag reference. Recommended scale-aware bound on each term:
+  abs(candidate-reference) <= atol + rtol*abs(reference).
+  complex128: atol=1e-12, rtol=1e-12.
+  complex64: atol=1e-6, rtol=1e-5.
+  This *replaces* the Plan's proposed absolute-only per-pair maximum
+  threshold, which can reject correct high-amplitude float32 products.
+  Always record absolute maximum error as a diagnostic.
+- Aggregation (candidate vs independent loop, identical pair lists):
+  define A_q=sum_{pairs routed to q}|reference pair contribution|.
+  abs(candidate_q-reference_q) <= atol + rtol*A_q for **every** bin.
+  complex128: atol=1e-12, rtol=1e-12.
+  complex64: atol=1e-6, rtol=1e-5.
+  For A_q=0 the limit reduces to atol. Report max absolute difference,
+  maximum zero-safe excess, empty-bin and genuine cancellation-heavy-bin
+  diagnostics separately. Do not replace A_q with |reference_q|.
+- Hermitian fixture: check RAW (unprojected) spectrum, requiring
+  max_q |Ihat(q)-conj(Ihat(-q))| <= 1e-10 in complex128,
+  <= 1e-5 in complex64; self-conjugate DC/Nyquist imaginary magnitude
+  <= 1e-10 (complex128), <= 1e-6 (complex64).
+  Check projection separately; never let projection conceal an erroneous
+  raw assembly.
+- Real inverse FFT: max imaginary residual <= 1e-10 (complex128)
+  and <= 1e-5 (complex64). Compare candidate/reference real IFFT output
+  against the declared numerical bounds. Do not apply a magnitude square.
+- Gradients: all required active gradient components finite; at least
+  one prescribed nondegenerate active real component and one active
+  imaginary component independently show nonzero gradients. Unused/
+  zero-spectrum coefficients may correctly produce zero gradients.
+  Check both real and imaginary parameter perturbations using centered
+  finite differences h=1e-6; use atol=1e-5, rtol=1e-4
+  on finite-difference-vs-autograd values. Also compare 8x8 reference
+  and candidate gradients with atol=rtol=1e-10.
+- Stability: finite real/imag products, spectra, inverse outputs, loss
+  and gradients on normal and x1000 stress fixtures. Check exact
+  deterministic pair selection/swap closure and two consecutive complete
+  runs, with no failures/errors/skips or missing evidence. No post hoc
+  threshold changes or silent reruns.
+- Two complete test repetitions must fit within one shared 120-second
+  wall-time deadline, approved separately by the project lead.
+
+## Frozen monitored-RSS memory policy (scope-limited project-lead approval)
+
+**Decision metric:** peak process-tree resident-set size (RSS) including
+runner and child test processes, <= **2 GiB total**. Record in MiB and
+bytes, per-attempt peaks and overall peak, and Linux cgroup memory events.
+The documented Cloud container has an 8 GiB cgroup memory limit.
+
+**Enforcement:** remove the 2 GiB RLIMIT_AS cap, which constrains *virtual
+address space* and is not a valid proxy for peak RSS. Use a watchdog to
+sample /proc process-tree RSS at <= 100ms cadence, conservatively summing
+the RSS of live experiment processes. Stop the entire child process group
+and mark resource failure on approaching **1.5 GiB (1536 MiB)** or if
+measurement fails. After each attempt, record /usr/bin/time -v max RSS;
+if the measured maximum is > 2 GiB, mark budget failure even if the
+watchdog did not prevent overshoot. The 1.5 GiB early-stop is a
+conservative operational guardrail, not proof of a strict kernel-enforced
+2 GiB maximum. No silent limit increase or replacement by RLIMIT_AS.
+If a dedicated writable cgroup v2 with memory.max=2GiB is available and
+independently reviewed, a strict kernel cap may be substituted before
+approval; otherwise explicitly disclose the watchdog's non-hard nature.
+
+No 2 GiB hard enforcement is currently verified. The project lead approved
+the userspace-watchdog policy with its non-hard enforcement limitation;
+it still requires static runner changes and independent review BEFORE
+any execution.
+
+## Post-freeze static implementation status and remaining blockers
+
+1. Static revisions in PR #7 have wired 16x16 complex128/complex64
+   acceptance tests to the frozen config; independent complex pair
+   products, zero-safe per-bin aggregation, raw Hermitian/DC/Nyquist,
+   direct inverse, 4x4 real/imag finite differences, 8x8 gradient
+   agreement, 16x16 gradient finiteness, binary mask and sparse
+   swapped-pair index alignment are now present. **None have run
+   since the freeze**. Their completeness and mathematical correctness
+   require independent review.
+2. Static runner updates replaced RLIMIT_AS with a Linux /proc
+   process-tree RSS sampler, a 1536 MiB early stop, a 2 GiB acceptance
+   metric and immutable per-attempt logs. Runtime behavior, timing
+   and any sample-overrun cases remain **unverified**; the watchdog
+   is not a guaranteed kernel-enforced cap.
+3. The 4x4/8x8 calibration was on an older commit, not these revised
+   tests/runner. The 16x16 runtime and numerical failure modes remain
+   unknown; the frozen thresholds must never be revised silently.
+4. Freeze an exact reviewed executable revision and environment,
+   confirm reserved append-only Run Log metadata and artifact
+   retention, obtain **formal Plan approval** and then distinct
+   **execution authorization**. No formal run may start before all
+   independent gates have been satisfied.
+5. The unique Run ID, two-repetition 120-second total deadline and
+   code/config/fixture/environment SHA-256 provenance must be
+   checked by an independent reviewer before execution.
+
+## Authority boundary
+
+The explicit project-lead sign-off on **these exact choices** occurred
+in ChatGPT on 2026-10-12. The Plan/config **numerical and memory settings**
+may be marked frozen, but the formal EXP-0003 Plan approval and
+execution authorization remain separately ungranted gates. No HYP-0004, ADR,
+METHOD-0002 selection, DATA-0001 freeze or evidence promotion is implied.
+
+Wiki projection: no projection needed; this is experiment-local numerical
+and operational design, not a new human-facing research explanation.
