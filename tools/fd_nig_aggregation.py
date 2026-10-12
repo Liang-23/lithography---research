@@ -46,11 +46,30 @@ def scatter_add_complex(contributions: torch.Tensor, bins: torch.Tensor,
 
 
 def aggregate(coefficients: torch.Tensor, spectrum: torch.Tensor,
-              pairs: torch.Tensor) -> torch.Tensor:
+              pairs: torch.Tensor, *, precision_mode: str = "native") -> torch.Tensor:
+    """Aggregate frequency-pair contributions with an explicit precision policy.
+
+    ``native`` (Strategy A, default) preserves the original complex64 or
+    complex128 arithmetic unchanged. ``mixed-complex128`` (Strategy C) accepts
+    complex64 inputs, promotes BOTH the pair products and scatter accumulation
+    to complex128, and casts the final spectrum back to complex64. This mode
+    does not validate native complex64 arithmetic or change frozen thresholds.
+    """
+    if precision_mode not in ("native", "mixed-complex128"):
+        raise ValueError(f"unknown aggregation precision_mode: {precision_mode}")
+    if precision_mode == "mixed-complex128":
+        if coefficients.dtype != torch.complex64 or spectrum.dtype != torch.complex64:
+            raise TypeError("mixed-complex128 requires complex64 coefficients and spectrum")
+        # Promote BEFORE multiplication: high-precision accumulation alone
+        # cannot recover rounding errors already introduced by products.
+        coefficients = coefficients.to(torch.complex128)
+        spectrum = spectrum.to(torch.complex128)
+
     height, width = spectrum.shape[-2:]
     bins = route_pairs(pairs, height, width)
     values = pair_products(coefficients, spectrum, pairs)
-    return scatter_add_complex(values, bins, height * width).reshape(height, width)
+    output = scatter_add_complex(values, bins, height * width).reshape(height, width)
+    return output.to(torch.complex64) if precision_mode == "mixed-complex128" else output
 
 
 def enforce_hermitian(spectrum: torch.Tensor) -> torch.Tensor:
