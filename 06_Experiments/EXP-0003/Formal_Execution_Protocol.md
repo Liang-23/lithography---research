@@ -50,6 +50,13 @@ after that deadline solely to preserve outcomes, not additional tests.
    The launcher refuses to start if the reservation is absent or mismatched.
 5. Confirm the suite covers every Plan gate. The launcher's structural
    approval check does **not** replace scientific review.
+6. Independently approve the exact **final** executable commit SHA and preserve
+   a revision approval record **outside** the repository checkout. The
+   `--approved-revision-record` argument is mandatory: the runner refuses to
+   start if this record is absent, inside the checkout, malformed, or does not
+   identify the checked-out full SHA, branch, Run ID, and matching Plan/execution
+   authorization references. Merely providing a record is not permission to
+   execute: an independent reviewer must establish the record's authenticity.
 
 **At this PR revision the launcher rejects execution** because the
 Plan and formal execution approval fields remain unapproved/blank.
@@ -63,12 +70,57 @@ From the repository root with the provisioned CPU-only environment:
 /workspace/fd-nig-venv/bin/python \
   06_Experiments/EXP-0003/run_formal_protocol.py \
   --execute \
-  --run-id RUN-EXP-0003-NNN
+  --run-id RUN-EXP-0003-NNN \
+  --approved-revision-record /external/approved-records/exp0003-revision.json
 ~~~
 
-Replace the placeholder with the actual reserved Run ID. The launcher
-resolves the repository root from its own location; by default it stores
-Run artifacts **outside the Git repository**, in a sibling directory.
+Replace the placeholder with the actual reserved Run ID and the path
+to an independently approved revision record. No such record is approved
+or provisioned at this stage. The launcher resolves the repository root
+from its own location; by default it stores Run artifacts **outside the
+Git repository**, in a sibling directory.
+
+### Independent revision approval record (schema only, NOT an approval)
+
+After **all** static fixes, Plan approval, Run ID reservation, and
+independent final-revision review, an authorized reviewer must supply
+a JSON file outside the Git checkout, using an absolute path. The
+following is a *field illustration only*; it is not a usable approval:
+
+~~~json
+{
+  "schema_version": "1.0",
+  "experiment": "EXP-0003",
+  "run_id": "RUN-EXP-0003-NNN",
+  "approved_branch": "task/fd-nig-verification",
+  "approved_commit_sha": "<full 40-character independently approved Git SHA>",
+  "plan_approval_ref": "<existing separately approved Plan reference>",
+  "formal_execution_authorization_ref": "<existing separate execution authorization>",
+  "revision_approval_ref": "<independent reviewer decision reference>"
+}
+~~~
+
+The runner checks the externally supplied record against HEAD, the actual
+branch, the reserved Run ID, and the already approved Plan/config references
+*before* creating any run artifacts or launching Python tests. It records
+the record's resolved location, SHA-256 file digest, revision approval reference,
+and approved commit SHA in `provenance.json`. The runner never supplies a
+default SHA or silently adopts current HEAD as the approved revision.
+
+**Ordering is important:** any tracked Run Log reservation or other
+preparation that creates a commit must be completed *before* the final
+executable revision is independently reviewed and approved. Then create the
+external approval record. Do not edit the checkout after pinning without
+re-review and a new decision. Never embed the HEAD SHA in a file within
+that very commit (self-referential commit cycle).
+
+**Trust boundary:** comparing the JSON values and hash proves agreement
+with the supplied record, **not** that the record was genuinely issued by
+the project lead. The approver must independently control and verify its
+provenance; the runner does not cryptographically authenticate signatures
+or prevent a party with write access to the external record from forging it.
+Neither this record nor the commit pin supersedes formal Plan approval
+and distinct execution authorization.
 
 The script refuses to execute without Plan/config approvals and matching
 approval/execution authorization references. It also validates the budget,
