@@ -3,6 +3,8 @@ id: EXP-0003
 title: "FD-NIG synthetic frequency-difference aggregation feasibility"
 experiment_state: draft-blocked
 approval_status: not_requested
+approval_ref:
+formal_execution_authorization_ref:
 method_ids: [METHOD-0002]
 data_ids: []
 source_ids: []
@@ -10,7 +12,7 @@ hypothesis_ids: []
 pc_ids: []
 owner: project-lead
 created: 2026-10-11
-last_updated: 2026-10-11
+last_updated: 2026-10-12
 ---
 
 # Purpose and authority boundary
@@ -166,8 +168,14 @@ authorized.
 
 ## Compute budget and artifacts (proposal)
 
-Budget: CPU-only, one process, at most 2 minutes wall time, 2 GB peak memory,
-and at most 2 repetitions of the test suite. No GPU, network data, training,
+Budget: **project-lead approved 2026-10-12 for budget interpretation only**:
+CPU-only, one process per repetition, **120 seconds TOTAL wall time across both
+complete test-suite repetitions**, not 120 seconds each, with a 2 GiB per-process
+virtual-address-space cap and at most two repetitions. The shared deadline must
+be enforced across repetitions and log preparation between them; timeout or
+failure is preserved, never retried by resetting the budget. This limited
+budget decision does **not** approve or freeze thresholds, settings, the Plan,
+or formal execution. No GPU, network data, training,
 or external simulator is required. Expected artifacts are a JSON test report,
 environment/version capture, fixture hash, and (if approved) a small gradient
 summary. No artifact may be described as scientific validation.
@@ -177,8 +185,10 @@ summary. No artifact may be described as scientific validation.
 1. **Resolved, 2026-10-11:** Project lead explicitly approved treating
    `EXP-0003` as a `METHOD-0002` method-local numerical feasibility check,
    without creating `HYP-0004`. This does not approve test execution.
-2. **Still blocked:** User approval of all proposed numerical tolerances, seed,
-   grid/normalization, sparse-pair policy, and compute budget.
+2. **Partially resolved, 2026-10-12:** Project lead explicitly approved only
+   the shared 120-second TOTAL wall-time budget across up to two repetitions.
+   Numerical tolerances, seed, grid/FFT normalization, sparse-pair policy, the
+   remaining resource/environment details, and full Plan freeze remain pending.
 3. **Still blocked:** Final implementation review confirming reference/candidate
    independence, adequate test coverage, and protected-file boundaries.
 4. **Still blocked:** Formal approval of this Plan (`approval_status`) before
