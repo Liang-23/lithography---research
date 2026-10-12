@@ -46,7 +46,7 @@ def digest(path: Path) -> str:
 
 
 def plan_field(contents: str, name: str) -> str:
-    match = re.search(r"^" + re.escape(name) + r":\s*(.*?)\s*$", contents, re.M)
+    match = re.search(r"^" + re.escape(name) + r":[ \t]*(.*)$", contents, re.M)
     return (match.group(1).strip("\"'") if match else "").strip()
 
 
@@ -286,21 +286,20 @@ def main() -> int:
             records.append(record)
             if not record["passed"]:
                 break
-            if len(records) == 2 and records[0]["test_ids"] != records[1]["test_ids"]:
-                records[-1]["passed"] = False
-                records[-1]["reason"] = "test IDs differ across repetitions"
-                # The second status file is amended only while finalizing this attempt.
-                with (run_dir / "attempt-02" / "status.json").open("w", encoding="utf-8") as f:
-                    json.dump(records[-1], f, indent=2, sort_keys=True)
-                    f.write("\n")
+
     except Exception as exc:
         records.append({"failed_in_runner": repr(exc), "at_utc": utc_now()})
+    same_test_ids = (
+        len(records) == 2
+        and records[0].get("test_ids") == records[1].get("test_ids")
+    )
     summary = {
         "experiment": "EXP-0003",
+        "same_test_ids_across_repetitions": same_test_ids,
         "run_id": run_id,
         "attempts": records,
         "total_elapsed_seconds": time.monotonic() - start,
-        "passed": len(records) == 2 and all(x.get("passed") for x in records),
+        "passed": len(records) == 2 and same_test_ids and all(x.get("passed") for x in records),
         "completed_utc": utc_now(),
     }
     write_json_new(run_dir / "summary.json", summary)
