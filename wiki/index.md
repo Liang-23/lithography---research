@@ -54,5 +54,4 @@ last_updated: 2026-10-14
 - [[amortized-projection-and-solver-distillation|Amortized Projection and Solver Distillation]] — corpus-relative comparison of solver removal, retained correction, and amortization
 - [[high-dimensional-safe-correction|High-dimensional Safe Correction]] — spatial-output evidence, damaging-correction modes, and unresolved safeguards
 - [[three-topic-architecture-and-occupancy-map|Three-topic Architecture and Occupancy Map]] — cross-paper mechanism and inference-dependency map
-
 - [[fd-gnn-effective-mode-feature-aggregation|FD-GNN Effective Mode Feature Aggregation]] — user-reviewed design progress; distinct `METHOD-0003` concept, untested difference-conditioned Aggregation Candidate A, and three registered foundational sources
