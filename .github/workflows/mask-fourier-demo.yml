@@ -1,0 +1,35 @@
+name: Mask Fourier Demo Images
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-demo-artifact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Configure Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install visualization dependencies
+        run: python -m pip install numpy matplotlib pillow
+      - name: Run deterministic synthetic Mask FFT demo
+        env:
+          MPLBACKEND: Agg
+        run: python demos/mask_to_fourier.py
+      - name: Upload exported presentation figures
+        uses: actions/upload-artifact@v4
+        with:
+          name: mask-fft-demo-images
+          path: |
+            demo_outputs/*.png
+            demo_outputs/provenance.txt
+            mask_fft_company_demo.zip
+          if-no-files-found: error
+          retention-days: 14
