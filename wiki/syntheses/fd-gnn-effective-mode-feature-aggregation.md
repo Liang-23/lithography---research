@@ -49,3 +49,26 @@ $$s_k=\sum_{l\in\mathcal N(k)}w_\theta(k-l)A(k)A^*(l).$$
 
 ## 还需解决
 定义 $U_\theta$、复数/向量聚合、Pair Sampling、FFT indexing、Hermitian/nonnegative intensity policy、独立泛化评估、显存和成本。与已注册的 Direct-pairwise FD-NIG 相比仍无正式实验。
+
+
+## 2026-10-14 补充：两轮 Pair Messages、Global Context 与 Effective Mode Generator
+
+**新进展是用户认可三个需要对照研究的 Generator 输入方案，并非验证出最佳模型。** 内部 GNN 仍只有三种节点：Frequency `F_k`、Pair `P_{k,l}`、Difference `D_q`。Frequency Node 的初始特征包含 `Re A(k)`、`Im A(k)` 和归一化的**绝对频率坐标** `(k_x,k_y)`，不加入实空间 `(x,y)` 位置。已知的 `A(k)A*(l)` 不由网络重新预测。
+
+**消息与最终成像不可混为一谈。** 当前更丰富的候选 Message Passing 是 Pair Node 读取相连两端 Frequency Hidden Features、已知复数 Pair Product 和 `q=k-l` 后生成高维 Message；Frequency Node 对多个 Pair Messages 做 Attention + Max 的候选 Aggregation、Residual Update。暂用两轮得到 `h_k^(2)`，但这不是经验证的最优深度。Difference Node 继续在最终光强频谱端收集相同 `q` 的 Pair Contributions；是否也参加内部更新尚未决定。旧版差频加权求和 Candidate A 仍是独立待比较方案，没有被证实无效。
+
+### 三种已认可的待比较方案
+
+| 方案 | Generator 使用什么信息 | 为什么考虑 | 局限 |
+| --- | --- | --- | --- |
+| **L0 Local-only** | 只有本节点 `h_k^(2)` | 必须保留简洁基准，直接测两轮 GNN 是否足够 | 稀疏 Pair Graph 可能限制两轮可达范围 |
+| **G1 Graph Global** | `h_k^(2)` + 从当前 Mask 所有**已建立 Frequency Nodes** 聚合的 `g_M^graph` | 低成本共享上下文，可先试 Mean + Max | 如果 Frequency Nodes 是采样子集，则这个全局向量并不覆盖完整频谱 |
+| **G2 Full Spectrum Global** | `h_k^(2)` + 独立读取整个 `A(k_x,k_y)` 的 `g_M^spectrum` | 显式接触 Pair/Node Sampling 可能略过的频率信息 | 如何保留二维频谱、复数相位以及推理效率尚未设计清楚 |
+
+三种方案**均不改变原来的 Graph Nodes 或 Edges**。G1/G2 是每张 Mask 独立计算的 Generator 旁路输入，不能跨 Mask batch 混合。Generator 对每个 `k` 输出 `R` 个复数 `b_r(k;M)`，最终仍使用原本的 `A(k)A*(l) Σ_r b_r(k;M)b_r*(l;M)` 沿 `P_{k,l} → D_{k-l}` 汇聚后 iFFT 得到 Aerial Image。
+
+### 为什么这是待验证的问题？
+
+两轮传播覆盖率取决于 Pair Graph 稀疏度；即便两轮能够接触大量 Frequency Nodes，固定宽度聚合也可能损失重要的分布信息。反过来，如果 Pair Graph 足够密，Global Encoder 未必值得额外的计算。G2 还需考虑 Fourier Phase 和空间平移带来的协变/等变条件。对于固定光学条件，真实 TCC 不应被误写为随 Mask 改变；Mask-conditioned Effective Modes 是灵活的 surrogate 中间表达。
+
+**下一步：** 在不改 Graph 拓扑的前提下，研究轻量的 Full-Spectrum Global Encoder，比较如何保留绝对频率、复数实/虚部和二维频谱结构；正式实验必须单独预注册。候选状态及理由以 `METHOD-0003` 与 `FD_GNN_Global_Context_Candidates_2026-10-14.md` 为准。这里是人类阅读层，不是 Verified Evidence。
