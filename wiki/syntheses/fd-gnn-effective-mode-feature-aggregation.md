@@ -11,7 +11,7 @@ created_at: 2026-10-14
 updated_at: 2026-10-14
 review_status: unreviewed
 core_alignment: pass
-canonical_refs: ["08_Project_Status/FD_GNN_Effective_Mode_Progress_Review_2026-10-14.md", "05_Method_Design/METHOD-0003_Mask_Conditioned_Effective_Mode_FD_GNN.md"]
+canonical_refs: ["08_Project_Status/FD_GNN_Effective_Mode_Progress_Review_2026-10-14.md", "08_Project_Status/FD_GNN_Global_Context_Candidates_2026-10-14.md", "05_Method_Design/METHOD-0003_Mask_Conditioned_Effective_Mode_FD_GNN.md"]
 source_ids: [SRC-0016, SRC-0017, SRC-0018]
 method_ids: [METHOD-0003]
 evidence_ids: []
