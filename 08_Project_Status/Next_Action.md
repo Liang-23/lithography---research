@@ -24,7 +24,7 @@ This file contains bounded actions, not an open-ended idea list. An action may b
 
 ## Current next step
 
-NA-0011 is the proposed next design-review action for the FD-GNN Effective Mode Generator. NA-0010 remains blocked for the separate Architecture 3 candidate; existing actions retain their own statuses. No Method is selected, data frozen, or experiment authorized.
+NA-0012 is the **proposed** design action to specify a lightweight full Mask-spectrum Global Encoder for the FD-GNN Effective Mode Generator. NA-0011 continues to capture candidate two-round high-dimensional Frequency/Pair message design and L0/G1/G2 comparison. NA-0010 remains blocked for separate Architecture 3. No Method is selected, data frozen, or experiment authorized.
 
 ## NA-0001 — Review governance skeleton
 
@@ -123,7 +123,7 @@ NA-0011 is the proposed next design-review action for the FD-GNN Effective Mode 
 
 ## NA-0011 — Design and compare FD-GNN internal aggregation
 
-- **Status:** proposed; user approved recording research progress and Candidate A for validation, not any formal test execution.
+- **Status:** in-progress (conceptual review only); user accepted recording candidate ideas including richer Pair messages, two rounds and L0/G1/G2 alternatives, not any formal test execution.
 - **Owner:** project lead with AI assistance.
 - **Date:** 2026-10-14.
 - **Purpose:** Specify $w_\theta(q)$, hidden update $U_\theta$, effective-mode readout, FFT/complex contracts, and a fair comparison of aggregation variants for the independent `METHOD-0003` concept.
@@ -132,3 +132,17 @@ NA-0011 is the proposed next design-review action for the FD-GNN Effective Mode 
 - **Blockers to experiment:** data/output contract, indexing and sparse edge policy, numerical/Hermitian/nonnegative constraints, competing aggregators, compute budget and preregistered acceptance criteria.
 - **Completion condition:** project lead reviews a precise, implementable architecture and any formal experiment must subsequently receive separate approval.
 - **Scope:** no code execution, data freeze, Core edit, Method selection, ADR acceptance or verified Evidence promotion.
+
+
+## NA-0012 — Specify FD-GNN full-spectrum Global Encoder candidates
+
+- **Status:** proposed (no code, training or experiment authorized).
+- **Owner:** project lead with AI assistance.
+- **Date:** 2026-10-14.
+- **Trigger:** Project lead acknowledged three alternative Mode Generator inputs: L0 local-only, G1 pooled graph-global and G2 separate full input spectrum-global.
+- **Purpose:** Compare lightweight ways to encode the complete 2D complex Fourier spectrum into a mask-specific global signal `g_M^spectrum`, preserving normalized absolute `k_x,k_y`, complex real/imaginary information and meaningful 2D spectral structure.
+- **Design comparisons:** First specify an interpretable coordinate-aware global readout; then assess frequency-aware learned pooling and 2D spectral encoder options. Consider simple concatenation for head fusion before treating FiLM or multi-token attention as follow-on candidates.
+- **Mandatory boundaries:** Preserve Frequency/Pair/Difference node types, existing incidence and Pair→Difference `q=k-l` routing, fixed-optics assumption and image-loss supervision. Record when Graph Frequency nodes are sampled rather than full-spectrum. Do not conflate global context with recovery of omitted pair contributions.
+- **Definition gaps:** FFT grid/indexing; active Frequency coverage; feasible full-spectrum resolution and memory; shift-equivariance and phase handling; `R`, hidden/global widths, method of complex-channel conversion, and exact validation targets.
+- **Completion condition:** Human-readable and mathematically specified G2 encoder candidates plus a fair L0/G1/G2 comparative protocol, without claiming a chosen encoder or measured improvements.
+- **Formal study gate:** Any executable `EXP-####/Plan.md` requires its own preregistration and explicit approval. No Core modification, ADR selection, Evidence promotion, simulator/data freeze or model code change under this action.
