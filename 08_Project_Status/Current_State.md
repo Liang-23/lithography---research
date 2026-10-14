@@ -13,12 +13,12 @@ reviewed_by:
 approved_by:
 approval_ref:
 created_at: 2026-08-26
-updated_at: 2026-10-11
+updated_at: 2026-10-14
 core_alignment: pass
-source_ids: [SRC-0001, SRC-0002, SRC-0003, SRC-0004, SRC-0005, SRC-0006, SRC-0007, SRC-0008, SRC-0009, SRC-0010, SRC-0011, SRC-0012, SRC-0013]
+source_ids: [SRC-0001, SRC-0002, SRC-0003, SRC-0004, SRC-0005, SRC-0006, SRC-0007, SRC-0008, SRC-0009, SRC-0010, SRC-0011, SRC-0012, SRC-0013, SRC-0014, SRC-0015, SRC-0016, SRC-0017, SRC-0018]
 data_ids: [DATA-0001]
 hypothesis_ids: [HYP-0001, HYP-0002, HYP-0003]
-method_ids: [METHOD-0001, METHOD-0002]
+method_ids: [METHOD-0001, METHOD-0002, METHOD-0003]
 experiment_ids: [EXP-0001, EXP-0002]
 decision_ids: [ADR-0001, ADR-0002, ADR-0003, ADR-0004]
 exclude_from_synthesis: false
@@ -28,7 +28,9 @@ exclude_from_synthesis: false
 
 ## Current phase
 
-`Candidate Architecture 3 kernel-prediction method and blocked feasibility-plan preparation; external MetalSet data registered but unfrozen; no Method selected or Experiment authorized`
+`FD-GNN internal Feature Learning / Aggregation concept design (METHOD-0003); previously registered Architecture 3 and direct-pairwise alternatives remain independent; no Method selected or Experiment authorized`
+
+On 2026-10-14, the project lead **reviewed and approved the conceptual FD-GNN progress summary** (`FD_GNN_Effective_Mode_Progress_Review_2026-10-14.md`). The separate draft `METHOD-0003` describes a Mask-conditioned Effective Mode Generator operating on a full mask Fourier spectrum, known Pair Products $A(k)A^*(l)$, user-approved incident Pair-to-Frequency-Node hidden-feature access, and final physically routed $(k-l)=q$ pair-contribution aggregation. The first learnable frequency-difference-conditioned hidden aggregation $s_k=\sum_{l\in\mathcal N(k)}w_\theta(k-l)A(k)A^*(l)$ is **only a candidate for future validation**. It has not been implemented or tested and is not selected. The effective modes need not match identifiable optical coherent modes; the intended supervision is final aerial-image loss with one-pass generalization to new masks. `METHOD-0002` (direct pairwise) and `METHOD-0001` remain unchanged and independent. Official online versions of three foundational GNN papers were registered as `SRC-0016`–`SRC-0018` and classified as `BG-0003`–`BG-0005`; original PDF bytes are **not** present in GitHub, full-text audit is pending, and no Evidence was promoted. The registered source count is now 18, although older historical paragraphs below retain their original campaign snapshots. No experiment or Core change was authorized.
 
 On 2026-10-11, `METHOD-0002` was documented as the independent draft candidate Frequency Difference Neural Interaction Graph (FD-NIG). It directly learns complex pairwise mask-frequency interactions routed by $q=k-l$, with explicit sparse-pair, discrete-index, Hermitian, nonnegative-output, and complexity requirements. The record does not select FD-NIG, create `HYP-0004`, authorize an experiment, freeze `DATA-0001`, or promote evidence. `METHOD-0001` remains unchanged.
 
