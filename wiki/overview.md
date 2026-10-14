@@ -44,6 +44,10 @@ Within that family, [[Output-level Physical Correction]] may use [[Physics-defin
 4. **Candidate training-time guidance:** physically meaningful correction and knowledge transfer may improve learned prediction behavior.
 5. **Inference boundary:** the final surrogate must not require an external filtering or post-processing module.
 
+## Current design exploration (unselected)
+
+A separate draft [[fd-gnn-effective-mode-feature-aggregation|FD-GNN Effective Mode Feature Aggregation]] describes the project's 2026-10-14 user-reviewed progress toward a Mask-conditioned forward surrogate. It uses deterministic Mask Fourier Pair Products, learns hidden features from frequency-difference graph relations, predicts latent Effective Modes, and applies physically routed pair contributions to reconstruct an Aerial Image. This is a **conceptual, unimplemented candidate**, not a Core change, selected Method or verified superiority claim. The existing output-correction candidate family remains separately recorded.
+
 ## Unresolved questions
 
 - The exact physical relationship, variables, units, tensor shapes, and validity regime are not yet defined.

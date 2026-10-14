@@ -13,7 +13,7 @@ reviewed_by:
 approved_by:
 approval_ref:
 created_at: 2026-08-26
-updated_at: 2026-09-21
+updated_at: 2026-10-14
 core_alignment: pass
 exclude_from_synthesis: true
 ---
@@ -24,7 +24,7 @@ This file contains bounded actions, not an open-ended idea list. An action may b
 
 ## Current next step
 
-NA-0010 is now the active preparation action for the candidate Architecture 3 feasibility prototype. NA-0008 and NA-0009 remain historical literature/definition actions. The new action does not select a Method, freeze data, or authorize execution.
+NA-0011 is the proposed next design-review action for the FD-GNN Effective Mode Generator. NA-0010 remains blocked for the separate Architecture 3 candidate; existing actions retain their own statuses. No Method is selected, data frozen, or experiment authorized.
 
 ## NA-0001 — Review governance skeleton
 
@@ -119,3 +119,16 @@ NA-0010 is now the active preparation action for the candidate Architecture 3 fe
 - **Blockers:** DATA-0001 is unfrozen; `alpha` is absent from the data; the exact `B` and multi-kernel combination contracts are open; external kernel assets are undecoded; no physical-constraint record exists for Stage 2; and no implementation is present in the current project.
 - **Completion condition:** EXP-0002 is fully specified and approved, with data/tensor/simulator contracts and implementation artifacts ready before any run.
 - **Evidence/report:** `08_Project_Status/Experiment_Preparation_Report_2026-09-21.md`.
+
+
+## NA-0011 — Design and compare FD-GNN internal aggregation
+
+- **Status:** proposed; user approved recording research progress and Candidate A for validation, not any formal test execution.
+- **Owner:** project lead with AI assistance.
+- **Date:** 2026-10-14.
+- **Purpose:** Specify $w_\theta(q)$, hidden update $U_\theta$, effective-mode readout, FFT/complex contracts, and a fair comparison of aggregation variants for the independent `METHOD-0003` concept.
+- **Research framing:** $p_{k,l}=A(k)A^*(l)$ is known; final pair contribution routes only to $q=k-l$. Internal incident Pair-to-Frequency-Node hidden message passing is separate from that physical output route.
+- **First candidate:** $s_k=\sum_{l\in\mathcal N(k)} w_\theta(k-l) A(k)A^*(l)$, untested and not selected.
+- **Blockers to experiment:** data/output contract, indexing and sparse edge policy, numerical/Hermitian/nonnegative constraints, competing aggregators, compute budget and preregistered acceptance criteria.
+- **Completion condition:** project lead reviews a precise, implementable architecture and any formal experiment must subsequently receive separate approval.
+- **Scope:** no code execution, data freeze, Core edit, Method selection, ADR acceptance or verified Evidence promotion.
