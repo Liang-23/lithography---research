@@ -2,6 +2,13 @@
 
 This workspace combines controlled research Governance with a human-readable Obsidian Wiki. It contains one research state—not a Governance knowledge base plus a separate graph knowledge base.
 
+## Online visualization demo: Mask → Fourier Spectrum
+
+- [Google Colab notebook and cloud execution instructions](demos/README.md)
+- [Computed six-panel SVG preview](demos/preview_mask_fft.svg)
+
+This is a synthetic-input educational visualization, **not** a trained FD-GNN, calibrated simulator, registered Experiment or verified Aerial Image benchmark. The canonical Method and research Governance remain unchanged.
+
 ## Final mental model
 
 ```text
