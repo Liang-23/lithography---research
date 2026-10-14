@@ -11,9 +11,9 @@ content_origin: ai-assisted
 created_at: 2026-10-14
 updated_at: 2026-10-14
 owner: project-lead
-review_status: reviewed
-reviewed_by: project-lead
-approved_by: project-lead
+review_status: pending-user-review
+reviewed_by:
+approved_by:
 approval_ref: "2026-10-14 conversation: project lead accepted L0/G1/G2 as candidate architectures and their motivations; not a final Method choice, ADR, or experiment authorization"
 core_alignment: pass
 source_ids: [SRC-0016, SRC-0017, SRC-0018]
