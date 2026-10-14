@@ -3,7 +3,7 @@ title: "Wiki Index"
 type: index
 authority_class: derived
 authority_scope: wiki-navigation-only
-last_updated: 2026-09-13
+last_updated: 2026-10-14
 ---
 
 # Wiki Index
@@ -28,6 +28,10 @@ last_updated: 2026-09-13
 - [[pinet|Pinet: Optimizing hard-constrained neural networks with orthogonal projection layers]] — `SRC-0012`; retained takeaway: loss on projected outputs and gradients through Projection; raw learning and lithography value remain to be tested
 - [[dc3|DC3: A learning method for optimization with hard constraints]] — `SRC-0013`; retained takeaway: partial prediction with equation completion; training without optimal labels requires a known objective and constraints
 
+- [[neural-message-passing-for-quantum-chemistry|Neural Message Passing for Quantum Chemistry]] — `SRC-0016`; abstract-level Message Passing foundations; full-text audit pending
+- [[how-powerful-are-graph-neural-networks|How Powerful are Graph Neural Networks?]] — `SRC-0017`; Aggregation Expressivity; unverified for lithography
+- [[deep-sets|Deep Sets]] — `SRC-0018`; Set Aggregation Theory; unverified for lithography
+
 ## Entities
 
 ## Concepts
@@ -50,3 +54,5 @@ last_updated: 2026-09-13
 - [[amortized-projection-and-solver-distillation|Amortized Projection and Solver Distillation]] — corpus-relative comparison of solver removal, retained correction, and amortization
 - [[high-dimensional-safe-correction|High-dimensional Safe Correction]] — spatial-output evidence, damaging-correction modes, and unresolved safeguards
 - [[three-topic-architecture-and-occupancy-map|Three-topic Architecture and Occupancy Map]] — cross-paper mechanism and inference-dependency map
+
+- [[fd-gnn-effective-mode-feature-aggregation|FD-GNN Effective Mode Feature Aggregation]] — user-reviewed design progress; distinct `METHOD-0003` concept, untested difference-conditioned Aggregation Candidate A, and three registered foundational sources
