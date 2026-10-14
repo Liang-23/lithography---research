@@ -27,6 +27,12 @@ The script writes the same three PNG presentations and a ZIP into the working di
 
 After this branch is merged to `main`, open **Actions → Mask Fourier Demo Images → Run workflow**. It will generate images with the **synthetic default mask only** and save a downloadable Actions artifact `mask-fft-demo-images`. The workflow does not train a model, read private company files, or commit synthetic outputs back into the repository.
 
+## Static preview (already saved in GitHub)
+
+![Six-panel computed synthetic mask FFT preview](preview_mask_fft.svg)
+
+This repository preview is a **48×48 calculated synthetic Mask / FFT / toy coherent filtering comparison**, created with the same stated unit-plane-wave assumptions. The notebook generates higher-resolution PNGs when executed online. No trained FD-GNN is represented in the preview.
+
 ## What the three exported PNG images show
 
 | Output | Intended company-slide use | Physics status |
