@@ -3,7 +3,7 @@ title: "Wiki Log"
 type: operation-log
 authority_class: derived
 authority_scope: wiki-audit-only
-last_updated: 2026-09-01
+last_updated: 2026-10-14
 ---
 
 # Wiki Log
@@ -220,3 +220,12 @@ Append-only chronological record of wiki operations.
 - **Grounding boundary:** Re-read Locked Core, routed status/workflow, BG-0002/HYP-0002, relevant canonical SRC-0002/SRC-0004/SRC-0006 reconstructions, and EV-0004–EV-0006. This was a project explanation revision, not a fresh full-text audit. No new verified Evidence, Human Audit completion, physics equation, dataset, simulator adoption, Method selection, or Experiment run.
 - **Validation:** Six edited content/index/status files passed YAML, canonical-path existence, balanced Obsidian math, and table-column checks. Language preservation: passed; Chinese was explicitly requested and English technical terms retained. Health still reports the same 15 pre-existing broken links to `High-dimensional AI Surrogate`, with no new unresolved target, cross-plane link, or Graph-scope error. No Graph renderer was used.
 
+
+
+## [2026-10-14] ingest + sync | FD-GNN Effective Mode Feature Learning
+
+- **Projection outcome: `projected`.** Human-readable source digests and a synthesis explain the difference between known Pair Products, GNN hidden-feature aggregation and final physical intensity-spectrum aggregation.
+- Registered official online GNN source links `SRC-0016`–`SRC-0018`; publisher PDF bytes have not been copied into `raw/` or GitHub, and original hashes/full Human Audits are pending.
+- Created three draft classified Background records `BG-0003`–`BG-0005`, without Evidence promotion.
+- Synced the user-reviewed progress review and separate candidate `METHOD-0003` into [[fd-gnn-effective-mode-feature-aggregation|FD-GNN Effective Mode Feature Aggregation]].
+- Preserved `METHOD-0002` as the direct-pairwise baseline and `METHOD-0001` unchanged. Candidate A Aggregation remains unimplemented/unverified; no Method selection, Core modification or Experiment authorization.
