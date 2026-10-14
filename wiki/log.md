@@ -229,3 +229,12 @@ Append-only chronological record of wiki operations.
 - Created three draft classified Background records `BG-0003`–`BG-0005`, without Evidence promotion.
 - Synced the user-reviewed progress review and separate candidate `METHOD-0003` into [[fd-gnn-effective-mode-feature-aggregation|FD-GNN Effective Mode Feature Aggregation]].
 - Preserved `METHOD-0002` as the direct-pairwise baseline and `METHOD-0001` unchanged. Candidate A Aggregation remains unimplemented/unverified; no Method selection, Core modification or Experiment authorization.
+
+
+## [2026-10-14] sync | FD-GNN Global Feature L0/G1/G2 candidate progress
+
+- **Projection outcome: `projected`.** The existing `wiki/syntheses/fd-gnn-effective-mode-feature-aggregation.md` was expanded with new human-readable distinctions among local-only, graph-pooled global and full-spectrum global inputs; high-dimensional Pair messages and two-round Frequency updates; Difference-node final routing; and fixed-optics/FFT phase caveats.
+- **Canonical delta:** Updated `METHOD-0003` and `Current_State.md`; added user-acknowledged design addendum `FD_GNN_Global_Context_Candidates_2026-10-14.md`; updated `Next_Action.md` with proposed full-spectrum encoder design action NA-0012.
+- **Authority boundaries:** User acceptance authorizes recording **three candidates and their rationale**, not a selected persistent Method, experiment, performance result, physical TCC claim, Evidence promotion, or new Graph node.
+- **Reused/left unchanged:** No duplicate new Wiki concept page, no index change (existing synthesis entry already valid), no Locked Core, Source, Verified Evidence, Experiment, Decision, `raw/`, or other Method changes.
+- **Validation status:** Documentary coherence reviewed; no numerical experiments or full project Wiki health/lint process executed in this GitHub-only update. Existing reported unresolved wiki links remain outside this bounded change.
