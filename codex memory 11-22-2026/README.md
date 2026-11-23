@@ -1,6 +1,6 @@
 # FD-GNN learning handoff
 
-Start at **Lesson 04, Part 27**. The last recorded attempt was “B” with uncertainty about the reasoning. Ask one fresh question about incoming Pair messages before moving on. [Lesson history and checkpoint](LESSONS.md) · [Antigravity prompts and Gemini tutor brief](WORKFLOW.md)
+Start at **Lesson 04, Part 27 (F6 follow-up check)**. On 2026-11-23, the learner correctly predicted `f9_message_matrix.shape = [3, 4]` and connected `3` to `F9`’s 3 incoming Pair messages, but swapped `shape[0]` and `shape[1]`. Ask the recorded `F6` `shape[0]`/`shape[1]` check before advancing. [Lesson history and checkpoint](LESSONS.md) · [Antigravity prompts and Gemini tutor brief](WORKFLOW.md)
 
 This AI-assisted handoff combines two records with different purposes. The project summary below comes from the repository. The lesson checkpoint comes from the learner’s FD-GNN tutoring sessions and records practice, questions and attempts. Update the checkpoint when a lesson is actually attempted.
 

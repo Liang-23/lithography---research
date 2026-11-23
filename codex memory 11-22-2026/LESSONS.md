@@ -21,9 +21,20 @@ AI-assisted reconstruction from the learner’s FD-GNN sessions. The examples be
 
 ## Resume here
 
-- **Last attempted:** Lesson 04 Part 27. Understanding still needs a short explanation in the learner’s own words.
+- **Last attempted:** Lesson 04, Part 27 (fresh recheck, 2026-11-23). Overall stacked shape `[3, 4]` and the link between `3` and the 3 incoming Pair messages were right, while `shape[0]` and `shape[1]` were swapped; one quick receiver check on `F6` is needed before advancing.
 - **Teaching style:** Show a small table or tensor, ask one short shape, node-ID or one-line PyTorch question, and wait for an attempt. Explain the result visually, then advance one concept.
-- **Suggested first check:** F6 receives two messages of width four. F9 receives three messages of the same width. Show the groups as rows and ask the learner to predict the shape of F9’s stacked matrix and explain what its first dimension counts. Withhold the expected result until the learner answers.
-- **After the answer:** If the axes are clear, proceed one small step toward processing a single receiver’s variable-size message group. If they are unclear, label the rows “incoming Pair” and the columns “feature”, then ask about a different receiver. Record what the learner actually demonstrated.
+- **Suggested first check:** Using the same toy incoming Pair-to-Frequency message table (`F6`: `P0`, `P1`; `F9`: `P2`, `P3`, `P4`; toy feature width $4$), ask: if we stack `f6_messages` with `f6_message_matrix = torch.stack(f6_messages, dim=0)`, what are `f6_message_matrix.shape[0]` and `f6_message_matrix.shape[1]`, and why is `f6_message_matrix.shape[0]` different from `f9_message_matrix.shape[0]`? Withhold the expected result until the learner answers.
+- **After the answer:** If `shape[0]` (row count = incoming Pairs) vs. `shape[1]` (column count = feature width) and the per-receiver variation are clear in the learner’s own words, proceed one small step toward processing a single receiver’s variable-size message group. Record what the learner actually demonstrated.
+
+## Session checkpoints
+
+### 2026-11-23 — Lesson 04, Part 27 (fresh recheck via Arm C Drive staging)
+
+- **Lesson and part attempted:** Lesson 04, Part 27 (fresh recheck on `torch.stack(..., dim=0)` shape and axis meaning for `F9`).
+- **Exercise and actual learner response:** Given the toy incoming Pair-to-Frequency message table (`F6`: 2 Pairs `P0, P1`; `F9`: 3 Pairs `P2, P3, P4`; width $4$), predicted `f9_message_matrix.shape = [3, 4]` and `f9_message_matrix.shape[0] = 4`, reasoning "because it involving 3 pair messages".
+- **What the learner explained correctly:** Correctly predicted the stacked matrix shape `[3, 4]` and connected the `3` to the 3 incoming Pair messages for `F9`.
+- **What still needs a check:** Mapping `shape[0]` to the row count (incoming Pairs $= 3$) versus `shape[1]` to the column count (feature width $= 4$), and stating in their own words why `shape[0]` can differ across receiver Frequency Nodes (e.g., `F6` vs. `F9`).
+- **Next single question:** Using the same table for `F6` (`P0` and `P1`), if we stack `f6_messages` with `f6_message_matrix = torch.stack(f6_messages, dim=0)`, what are `f6_message_matrix.shape[0]` and `f6_message_matrix.shape[1]`, and why is `f6_message_matrix.shape[0]` different from `f9_message_matrix.shape[0]`?
+- **Method decisions touched or left open:** Kept `METHOD-0003` as a draft concept candidate (`method_state: concept`); internal Pair-to-incident-Frequency messages kept distinct from final $q = k - l$ Difference Node rendering; toy feature width $4$ noted as an exercise input only. Left open: attention scoring, normalization, target-specific message orientation, channel widths, exact aggregation equations (attention plus elementwise max remains a working candidate), FFT boundary convention, mode count $R$, and global-context choice (`L0`/`G1`/`G2`).
 
 At the end of a later session, append the lesson/part, exercise, actual attempt, what the learner explained, and one next question. Update “Last attempted” to match that entry.
